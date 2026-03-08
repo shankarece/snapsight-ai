@@ -3,7 +3,7 @@ import { LayoutDashboard, MessageSquare, Database, Sparkles, Plus, Clock, Filter
 import SearchBar from "./components/SearchBar";
 import ChartWidget from "./components/ChartWidget";
 import AgentThinking from "./components/AgentThinking";
-import { askQuestion, discoverInsights, askCsv } from "./api";
+import { askQuestion, discoverInsights, askCsv, checkHealth, getInsightsCatalog } from "./api";
 import "./App.css";
 
 // Drill-down question templates per dimension
@@ -75,6 +75,15 @@ const CHART_TYPE_OPTIONS = [
   { type: "pie",            label: "Pie",        icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><circle cx="10" cy="8" r="6" fill={a ? "#F43F5E33" : "#47556933"} stroke={a ? "#F43F5E" : "#475569"} strokeWidth="1.5"/><line x1="10" y1="8" x2="10" y2="2" stroke={a ? "#F43F5E" : "#475569"} strokeWidth="1.5"/><line x1="10" y1="8" x2="15" y2="11" stroke={a ? "#F43F5E" : "#475569"} strokeWidth="1.5"/></svg> },
   { type: "funnel",         label: "Funnel",     icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><polygon points="1,1 19,1 14,8 6,8" fill={a ? "#60A5FA33" : "#47556933"} stroke={a ? "#60A5FA" : "#475569"} strokeWidth="1.2"/><polygon points="6,9 14,9 12,15 8,15" fill={a ? "#60A5FA55" : "#47556944"} stroke={a ? "#60A5FA" : "#475569"} strokeWidth="1.2"/></svg> },
   { type: "kpi",            label: "KPI",        icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><text x="10" y="12" textAnchor="middle" fontSize="11" fontWeight="800" fill={a ? "#00D2FF" : "#475569"} fontFamily="Inter">#</text></svg> },
+  { type: "table",          label: "Table",      icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><rect x="1" y="1" width="18" height="14" rx="1" fill="none" stroke={a ? "#00D2FF" : "#475569"} strokeWidth="1"/><line x1="1" y1="5" x2="19" y2="5" stroke={a ? "#00D2FF" : "#475569"} strokeWidth="1"/><line x1="6.5" y1="1" x2="6.5" y2="15" stroke={a ? "#00D2FF" : "#475569"} strokeWidth="1"/><line x1="12" y1="1" x2="12" y2="15" stroke={a ? "#00D2FF" : "#475569"} strokeWidth="1"/></svg> },
+  { type: "scatter",        label: "Scatter",    icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><circle cx="3" cy="12" r="1.5" fill={a ? "#00D2FF" : "#475569"}/><circle cx="6" cy="8" r="1.5" fill={a ? "#00D2FF" : "#475569"}/><circle cx="9" cy="11" r="1.5" fill={a ? "#00D2FF" : "#475569"}/><circle cx="12" cy="5" r="1.5" fill={a ? "#00D2FF" : "#475569"}/><circle cx="15" cy="9" r="1.5" fill={a ? "#00D2FF" : "#475569"}/><circle cx="18" cy="3" r="1.5" fill={a ? "#00D2FF" : "#475569"}/></svg> },
+  { type: "bubble",         label: "Bubble",     icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><circle cx="4" cy="11" r="2.5" fill={a ? "#A78BFA" : "#475569"} opacity="0.6"/><circle cx="10" cy="6" r="3.5" fill={a ? "#A78BFA" : "#475569"} opacity="0.6"/><circle cx="16" cy="10" r="2" fill={a ? "#A78BFA" : "#475569"} opacity="0.6"/></svg> },
+  { type: "heatmap",        label: "Heatmap",    icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><rect x="1" y="2" width="3.5" height="3.5" fill={a ? "#006E9A" : "#475569"}/><rect x="5" y="2" width="3.5" height="3.5" fill={a ? "#00A8D8" : "#475569"}/><rect x="9" y="2" width="3.5" height="3.5" fill={a ? "#00D2FF" : "#475569"}/><rect x="13" y="2" width="3.5" height="3.5" fill={a ? "#00D2FF" : "#475569"}/><rect x="1" y="7" width="3.5" height="3.5" fill={a ? "#00A8D8" : "#475569"}/><rect x="5" y="7" width="3.5" height="3.5" fill={a ? "#00D2FF" : "#475569"}/><rect x="9" y="7" width="3.5" height="3.5" fill={a ? "#00D2FF" : "#475569"}/><rect x="13" y="7" width="3.5" height="3.5" fill={a ? "#00D2FF" : "#475569"}/></svg> },
+  { type: "gauge",          label: "Gauge",      icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><path d="M 3 12 A 8 8 0 0 1 17 12" fill="none" stroke={a ? "rgba(0,210,255,0.3)" : "#475569"} strokeWidth="2"/><path d="M 3 12 A 8 8 0 0 1 12 12" fill="none" stroke={a ? "#00D2FF" : "#475569"} strokeWidth="2" strokeLinecap="round"/><circle cx="10" cy="12" r="1" fill={a ? "#00D2FF" : "#475569"}/></svg> },
+  { type: "waterfall",      label: "Waterfall",  icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><rect x="1" y="9" width="3" height="5" fill={a ? "#10B981" : "#475569"}/><line x1="4" y1="9" x2="7" y2="6" stroke={a ? "#94a3b8" : "#475569"} strokeWidth="1" strokeDasharray="1,1"/><rect x="7" y="6" width="3" height="8" fill={a ? "#F43F5E" : "#475569"}/><line x1="10" y1="6" x2="13" y2="8" stroke={a ? "#94a3b8" : "#475569"} strokeWidth="1" strokeDasharray="1,1"/><rect x="13" y="8" width="3" height="6" fill={a ? "#10B981" : "#475569"}/></svg> },
+  { type: "combo",          label: "Combo",      icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><rect x="2" y="8" width="2.5" height="6" rx="0.5" fill={a ? "#00D2FF" : "#475569"}/><rect x="5.5" y="5" width="2.5" height="9" rx="0.5" fill={a ? "#00D2FF" : "#475569"}/><rect x="9" y="6" width="2.5" height="8" rx="0.5" fill={a ? "#00D2FF" : "#475569"}/><polyline points="3.25,8 6.75,4 10.25,5 13.75,2" fill="none" stroke={a ? "#F59E0B" : "#475569"} strokeWidth="1.5" strokeLinecap="round"/></svg> },
+  { type: "sankey",         label: "Sankey",     icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><rect x="1" y="2" width="4" height="4" fill={a ? "#00D2FF" : "#475569"}/><rect x="7" y="5" width="4" height="4" fill={a ? "#00D2FF" : "#475569"}/><rect x="13" y="1" width="4" height="4" fill={a ? "#00D2FF" : "#475569"}/><path d="M 5 4 Q 8 5 7 7" fill="none" stroke={a ? "rgba(0,210,255,0.5)" : "#475569"} strokeWidth="1"/><path d="M 5 5 Q 10 6 13 3" fill="none" stroke={a ? "rgba(0,210,255,0.5)" : "#475569"} strokeWidth="1"/></svg> },
+  { type: "treemap",        label: "Treemap",    icon: (a) => <svg width="20" height="16" viewBox="0 0 20 16"><rect x="1" y="1" width="6" height="7" fill={a ? "#00D2FF" : "#475569"} opacity="0.8"/><rect x="8" y="1" width="5" height="7" fill={a ? "#A78BFA" : "#475569"} opacity="0.8"/><rect x="14" y="1" width="5" height="7" fill={a ? "#10B981" : "#475569"} opacity="0.8"/><rect x="1" y="9" width="7" height="6" fill={a ? "#F59E0B" : "#475569"} opacity="0.8"/><rect x="9" y="9" width="10" height="6" fill={a ? "#F43F5E" : "#475569"} opacity="0.8"/></svg> },
 ];
 
 function App() {
@@ -91,10 +100,14 @@ function App() {
   const [csvData, setCsvData]             = useState(null); // { name, columns, data }
   const [isDragOver, setIsDragOver]       = useState(false);
   const fileInputRef                      = useRef(null);
-  const [activeChartType, setActiveChartType] = useState(null); // override chart type
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0); // which suggestion to display (0-based)
   const [searchInjection, setSearchInjection] = useState(""); // column click → search bar
   const [expandedTables, setExpandedTables]   = useState({ sales: true, customers: false, products: false, pipeline: false });
   const [theme, setTheme] = useState(() => localStorage.getItem("ss_theme") || "dark");
+  const [autoInsights, setAutoInsights] = useState([]); // auto-discovered insights on mount
+  const [catalogInsights, setCatalogInsights] = useState([]); // possible questions catalog
+  const [dbConnected, setDbConnected] = useState(false); // DB connection status
+  const [clearConfirm, setClearConfirm] = useState(null); // null | "answers" | "history" | "pinboard"
   const [answers, setAnswers] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("ss_answers") || "[]");
@@ -147,6 +160,40 @@ function App() {
   useEffect(() => {
     localStorage.setItem("ss_answers", JSON.stringify(answers));
   }, [answers]);
+
+  // ── On mount: Check DB connection and auto-discover insights ──
+  useEffect(() => {
+    const initializeApp = async () => {
+      const health = await checkHealth();
+      const isConnected = health.database === "connected";
+      setDbConnected(isConnected);
+
+      if (isConnected) {
+        // Auto-discover insights
+        try {
+          setIsDiscovering(true);
+          const results = await discoverInsights();
+          const groups = results.map((response, idx) =>
+            buildQueryGroup(response, Date.now() + idx * 1000, { isDiscovered: true })
+          );
+          setAutoInsights(groups);
+        } catch (err) {
+          console.error("Auto-discovery failed:", err);
+        } finally {
+          setIsDiscovering(false);
+        }
+
+        // Load possible questions catalog
+        try {
+          const catalog = await getInsightsCatalog();
+          setCatalogInsights(catalog);
+        } catch (err) {
+          console.error("Failed to load catalog:", err);
+        }
+      }
+    };
+    initializeApp();
+  }, []);
 
   const createDashboard = () => {
     const id = Date.now();
@@ -257,7 +304,7 @@ function App() {
     setIsLoading(true);
     setError(null);
     setShowHistory(false);
-    setActiveChartType(null); // reset chart type on new query
+    setActiveSuggestionIndex(0); // reset to first suggestion on new query
     try {
       // Move current queryResults to answers before firing new query
       if (queryResults.length > 0) {
@@ -333,6 +380,21 @@ function App() {
     updateDashWidgets(ws => ws.filter(w => w.id !== widget.id));
   };
 
+  const handleClearConfirmed = () => {
+    if (clearConfirm === "answers") {
+      setAnswers([]);
+      localStorage.removeItem("ss_answers");
+    } else if (clearConfirm === "history") {
+      setQueryHistory([]);
+      localStorage.removeItem("snapsight_history");
+    } else if (clearConfirm === "pinboard") {
+      setDashboards(prev => prev.map(d =>
+        d.id === activeDashboardId ? { ...d, widgets: [] } : d
+      ));
+    }
+    setClearConfirm(null);
+  };
+
   const removeQueryGroup = (groupId) => setQueryResults(prev => prev.filter(g => g.id !== groupId));
   const isPinned = (widgetId) => pinnedWidgets.some(w => w.id === widgetId);
 
@@ -389,22 +451,22 @@ function App() {
       primary05: "#F3F4F6",
     },
     dark: {
-      bg: "#1A202C",
-      text1: "#F7FAFC",
-      text2: "#CBD5E0",
-      text3: "#A0AEC0",
-      headerBg: "#1A202C",
-      headerBorder: "#4A5568",
-      sidebarBg: "#0F1419",
-      sidebarBorder: "#4A5568",
-      columnBrowserBg: "#0F1419",
-      columnBrowserBorder: "#4A5568",
-      primaryColor: "#4A9FFF",
-      primaryAccent: "#4A9FFF",
-      primaryBg: "rgba(74, 159, 255, 0.1)",
-      primaryBorder: "rgba(74, 159, 255, 0.2)",
-      primary06: "#4A5568",
-      primary05: "#2D3748",
+      bg: "#0F1419",
+      text1: "#E5E7EB",
+      text2: "#D1D5DB",
+      text3: "#9CA3AF",
+      headerBg: "#0F1419",
+      headerBorder: "#2D3748",
+      sidebarBg: "#060812",
+      sidebarBorder: "#2D3748",
+      columnBrowserBg: "#060812",
+      columnBrowserBorder: "#2D3748",
+      primaryColor: "#00D2FF",
+      primaryAccent: "#00D2FF",
+      primaryBg: "rgba(0, 210, 255, 0.12)",
+      primaryBorder: "rgba(0, 210, 255, 0.3)",
+      primary06: "#2D3748",
+      primary05: "#1A202C",
     }
   };
 
@@ -414,13 +476,15 @@ function App() {
   const tabBtn = (active) => ({
     background: active ? c.primaryBg : "transparent",
     border: "none",
-    borderBottom: active ? `2px solid ${c.primaryColor}` : "2px solid transparent",
+    borderBottom: active ? `3px solid ${c.primaryColor}` : "3px solid transparent",
     borderRadius: 0,
-    padding: "8px 16px", cursor: "pointer",
-    color: active ? c.primaryColor : c.text2,
-    display: "flex", alignItems: "center", gap: 6,
-    fontSize: 14, fontWeight: 500,
+    padding: "10px 18px", cursor: "pointer",
+    color: active ? c.primaryColor : c.text3,
+    display: "flex", alignItems: "center", gap: 7,
+    fontSize: 13, fontWeight: 600,
     transition: "all 0.2s",
+    letterSpacing: "-0.01em",
+    whiteSpace: "nowrap",
   });
 
   const selectStyle = {
@@ -447,47 +511,54 @@ function App() {
         background: c.headerBg,
         position: "sticky", top: 0, zIndex: 100,
       }}>
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Logo + Brand */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: "fit-content" }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 6,
-            background: c.primaryColor,
+            width: 36, height: 36, borderRadius: 8,
+            background: `linear-gradient(135deg, ${c.primaryColor}, #A78BFA)`,
             display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 4px 12px ${c.primaryColor}44`,
           }}>
-            <Sparkles size={16} color="white" />
+            <Sparkles size={18} color="white" strokeWidth={2.5} />
           </div>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: c.text1 }}>
-            SnapSight AI
-          </h1>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: c.text1, letterSpacing: "-0.02em" }}>
+              SnapSight AI
+            </h1>
+            <p style={{ margin: 0, fontSize: 10, color: c.text3, fontWeight: 500, fontFamily: "Inter, sans-serif" }}>
+              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
         </div>
 
-        {/* Nav tabs */}
-        <div style={{ display: "flex", gap: 4, alignItems: "center", flex: 1 }}>
-          <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.04)", borderRadius: 11, padding: 4 }}>
-            <button style={tabBtn(activeTab === "search")} onClick={() => setActiveTab("search")}>
-              <MessageSquare size={14} /> Ask
-            </button>
-            <button style={tabBtn(activeTab === "answers")} onClick={() => setActiveTab("answers")}>
-              <TrendingUp size={14} /> Answers ({answers.length})
-            </button>
-            <button style={tabBtn(activeTab === "dashboard")} onClick={() => setActiveTab("dashboard")}>
-              <LayoutDashboard size={14} /> Liveboard ({pinnedWidgets.length})
-            </button>
-            <button style={tabBtn(activeTab === "library")} onClick={() => setActiveTab("library")}>
-              <BookOpen size={14} /> Library
-            </button>
-            <button style={tabBtn(showHistory)} onClick={() => setShowHistory(h => !h)}>
-              <Clock size={14} /> History {queryHistory.length > 0 && `(${queryHistory.length})`}
-            </button>
-          </div>
-          <button style={{ marginLeft: "auto", background: theme === "light" ? "rgba(0,136,204,0.12)" : "rgba(0,210,255,0.12)", border: "1px solid " + (theme === "light" ? "rgba(0,136,204,0.25)" : "rgba(0,210,255,0.25)"), borderRadius: 9, padding: "8px 14px", cursor: "pointer", color: theme === "light" ? "#0088CC" : "#67E8F9", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, fontFamily: "Inter, sans-serif", transition: "all 0.2s" }} onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}>
-            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-            {theme === "dark" ? "Light" : "Dark"}
+        {/* Nav tabs - Centered */}
+        <div style={{ display: "flex", gap: 0, alignItems: "center", flex: 1, justifyContent: "center", marginLeft: 40 }}>
+          <button style={tabBtn(activeTab === "search")} onClick={() => setActiveTab("search")}>
+            <MessageSquare size={15} /> Ask
+          </button>
+          <button style={tabBtn(activeTab === "answers")} onClick={() => setActiveTab("answers")}>
+            <TrendingUp size={15} /> Answers <span style={{ background: c.primaryBg, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700 }}>({answers.length})</span>
+          </button>
+          <button style={tabBtn(activeTab === "dashboard")} onClick={() => setActiveTab("dashboard")}>
+            <LayoutDashboard size={15} /> Liveboard <span style={{ background: c.primaryBg, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700 }}>({pinnedWidgets.length})</span>
+          </button>
+          <button style={tabBtn(activeTab === "library")} onClick={() => setActiveTab("library")}>
+            <BookOpen size={15} /> Library
+          </button>
+          <button style={tabBtn(showHistory)} onClick={() => setShowHistory(h => !h)}>
+            <Clock size={15} /> History {queryHistory.length > 0 && <span style={{ background: c.primaryBg, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700 }}>({queryHistory.length})</span>}
           </button>
         </div>
 
-        <div style={{ fontSize: 11, color: c.text3, display: "flex", alignItems: "center", gap: 6, fontFamily: "Inter, sans-serif" }}>
-          <Database size={12} style={{ color: "#10B981" }} /> Azure SQL Connected
+        {/* Right controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
+          <div style={{ fontSize: 11, color: c.text3, display: "flex", alignItems: "center", gap: 6, fontFamily: "Inter, sans-serif", padding: "6px 10px", background: c.primary05, borderRadius: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10B981", boxShadow: "0 0 8px #10B981" }} />
+            Connected
+          </div>
+          <button style={{ background: c.primaryBg, border: `1.5px solid ${c.primaryBorder}`, borderRadius: 9, padding: "8px 14px", cursor: "pointer", color: c.primaryColor, display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif", transition: "all 0.2s" }} onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}>
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
         </div>
       </header>
 
@@ -508,7 +579,7 @@ function App() {
             }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: c.text1, fontFamily: "Inter, sans-serif" }}>Query History</span>
               <button
-                onClick={() => { setQueryHistory([]); localStorage.removeItem("snapsight_history"); }}
+                onClick={() => setClearConfirm("history")}
                 style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 11, fontFamily: "Inter, sans-serif" }}
               >Clear all</button>
             </div>
@@ -535,22 +606,22 @@ function App() {
         )}
 
         {/* Main content */}
-        <main style={{ flex: 1, minWidth: 0, padding: "28px 36px", overflowY: "auto" }}>
+        <main style={{ flex: 1, minWidth: 0, padding: "20px 28px", overflowY: "auto" }}>
 
           {/* ═══ ASK TAB — 3-Panel ThoughtSpot Layout ════ */}
           {activeTab === "search" && (() => {
             const latestGroup = queryResults[0] || null;
-            // Build the displayed widget: use first suggestion, optionally override chart type
-            const displayedWidget = latestGroup && latestGroup.suggestions[0]
-              ? { ...latestGroup.suggestions[0], chart_type: activeChartType || latestGroup.suggestions[0].chart_type }
+            // Use activeSuggestionIndex to pick which suggestion to display
+            const displayedWidget = latestGroup && latestGroup.suggestions[activeSuggestionIndex]
+              ? latestGroup.suggestions[activeSuggestionIndex]
               : null;
 
             return (
-              <div style={{ display: "flex", gap: 0, minHeight: "calc(100vh - 120px)" }}>
+              <div style={{ display: "flex", gap: 0, minHeight: "calc(100vh - 100px)" }}>
 
                 {/* ── LEFT: Column Browser ── */}
                 <div style={{
-                  width: 230, flexShrink: 0,
+                  width: 260, flexShrink: 0,
                   borderRight: `1px solid ${c.columnBrowserBorder}`,
                   background: c.columnBrowserBg,
                   display: "flex", flexDirection: "column",
@@ -697,20 +768,55 @@ function App() {
                 <div style={{ flex: 1, minWidth: 0, padding: "16px 24px", overflowY: "auto" }}>
                   <SearchBar onSearch={handleSearch} isLoading={isLoading || isDiscovering} externalQuery={searchInjection} />
 
-                  {/* SpotIQ Discover */}
-                  <div style={{ display: "flex", justifyContent: "center", marginBottom: 20, marginTop: -8 }}>
+                  {/* Action buttons row */}
+                  <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 20, marginTop: -4 }}>
                     <button onClick={handleDiscover} disabled={isLoading || isDiscovering}
                       style={{
-                        background: isDiscovering ? "rgba(167,139,250,0.12)" : "linear-gradient(135deg, rgba(167,139,250,0.14), rgba(139,92,246,0.14))",
-                        border: "1px solid rgba(167,139,250,0.35)", borderRadius: 12,
-                        padding: "8px 20px", cursor: isDiscovering ? "not-allowed" : "pointer",
+                        background: isDiscovering ? "rgba(167,139,250,0.15)" : "rgba(167,139,250,0.08)",
+                        border: `1.5px solid rgba(167,139,250,${isDiscovering ? "0.4" : "0.25"})`,
+                        borderRadius: 10,
+                        padding: "9px 16px", cursor: isDiscovering ? "not-allowed" : "pointer",
                         color: "#C4B5FD", fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
                         display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s",
-                        opacity: isLoading ? 0.5 : 1,
+                        opacity: isLoading ? 0.6 : 1,
                       }}>
                       <TrendingUp size={14} />
-                      {isDiscovering ? "Analyzing…" : "Discover Insights (SpotIQ)"}
+                      {isDiscovering ? "Analyzing…" : "Discover Insights"}
                     </button>
+
+                    {(isLoading || isDiscovering) && (
+                      <button onClick={() => setIsLoading(false)}
+                        style={{
+                          background: "rgba(239,68,68,0.12)",
+                          border: "1.5px solid rgba(239,68,68,0.35)",
+                          borderRadius: 10,
+                          padding: "9px 16px", cursor: "pointer",
+                          color: "#fca5a5", fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+                          display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.2)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}>
+                        <X size={14} />
+                        Stop
+                      </button>
+                    )}
+
+                    {queryResults.length > 0 && !isLoading && !isDiscovering && (
+                      <button onClick={() => { setQueryResults([]); setActiveSuggestionIndex(0); }}
+                        style={{
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1.5px solid rgba(255,255,255,0.12)",
+                          borderRadius: 10,
+                          padding: "9px 16px", cursor: "pointer",
+                          color: c.text2, fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+                          display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}>
+                        <X size={14} />
+                        Clear
+                      </button>
+                    )}
                   </div>
 
                   {(isLoading || isDiscovering) && <AgentThinking />}
@@ -718,28 +824,156 @@ function App() {
                   {error && (
                     <div style={{
                       padding: "12px 16px", marginBottom: 16, borderRadius: 12,
-                      background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)",
-                      color: "#fca5a5", fontSize: 13, fontFamily: "Inter, sans-serif",
-                    }}>{error}</div>
+                      background: "rgba(239,68,68,0.12)", border: "1.5px solid rgba(239,68,68,0.25)",
+                      color: "#FCA5A5", fontSize: 13, fontFamily: "Inter, sans-serif", fontWeight: 500,
+                      display: "flex", alignItems: "flex-start", gap: 10,
+                    }}>
+                      <X size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>{error}</span>
+                    </div>
                   )}
 
                   {/* Empty state */}
                   {queryResults.length === 0 && !isLoading && !isDiscovering && (
-                    <div style={{ textAlign: "center", padding: "50px 20px" }}>
-                      <div style={{
-                        width: 72, height: 72, borderRadius: 22, margin: "0 auto 18px",
-                        background: "linear-gradient(135deg, rgba(0,210,255,0.10), rgba(167,139,250,0.10))",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        border: "1px solid rgba(0,210,255,0.16)",
-                      }}>
-                        <MessageSquare size={28} style={{ color: "#00D2FF" }} />
-                      </div>
-                      <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px", color: "#F0F4FF" }}>
-                        Ask anything about your data
-                      </h2>
-                      <p style={{ fontSize: 13, color: "#475569", maxWidth: 400, margin: "0 auto", lineHeight: 1.6, fontFamily: "Inter, sans-serif" }}>
-                        Type a question, click columns on the left, or try <strong style={{ color: "#C4B5FD" }}>Discover Insights</strong>.
-                      </p>
+                    <div>
+                      {/* Auto-Generated Insights (if DB connected) */}
+                      {dbConnected && autoInsights.length > 0 && (
+                        <div style={{ marginBottom: 40 }}>
+                          <h2 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 16px", color: c.text1, display: "flex", alignItems: "center", gap: 10, letterSpacing: "-0.01em" }}>
+                            <Sparkles size={18} style={{ color: c.primaryColor }} />
+                            Auto-Generated Insights
+                          </h2>
+                          <div style={{
+                            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16,
+                          }}>
+                            {autoInsights.slice(0, 4).map(group => (
+                              <div key={group.id} style={{
+                                background: c.primary05,
+                                border: `1.5px solid ${c.primary06}`,
+                                borderRadius: 12, padding: 16, cursor: "pointer",
+                                transition: "all 0.2s", height: "100%", display: "flex", flexDirection: "column",
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.borderColor = c.primaryBorder;
+                                e.currentTarget.style.background = c.columnBrowserBg;
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.borderColor = c.primary06;
+                                e.currentTarget.style.background = c.primary05;
+                              }}
+                              onClick={() => { setQueryResults([group]); setActiveSuggestionIndex(0); }}
+                              >
+                                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: c.text1, marginBottom: 6, lineHeight: 1.4 }}>
+                                  {group.question}
+                                </h3>
+                                <p style={{ margin: 0, fontSize: 12, color: c.text2, marginBottom: 12, flex: 1, fontFamily: "Inter, sans-serif", lineHeight: 1.5 }}>
+                                  {group.insight?.substring(0, 65)}...
+                                </p>
+                                <div style={{
+                                  width: "100%", height: 80, borderRadius: 8,
+                                  background: c.primary06, border: `1.5px solid ${c.primary06}`,
+                                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: c.text3,
+                                  fontFamily: "Inter, sans-serif", overflow: "hidden", fontWeight: 600,
+                                }}>
+                                  {group.suggestions[0]?.chart_type === "table" ? "📊 Data Table" : `📈 ${group.suggestions[0]?.title || "Chart"}`}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Possible Questions by Category */}
+                      {dbConnected && catalogInsights.length > 0 && (
+                        <div style={{ marginBottom: 40 }}>
+                          <h2 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 16px", color: c.text1, display: "flex", alignItems: "center", gap: 10, letterSpacing: "-0.01em" }}>
+                            <BookOpen size={18} style={{ color: "#A78BFA" }} />
+                            Possible Questions
+                          </h2>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+                            {catalogInsights.map((category, idx) => (
+                              <div key={idx} style={{
+                                background: c.primary05,
+                                border: `1.5px solid ${c.primary06}`,
+                                borderRadius: 12, padding: 16,
+                              }}>
+                                <h3 style={{ margin: "0 0 14px", fontSize: 12, fontWeight: 800, color: c.primaryColor, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                                  {category.name}
+                                </h3>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                                  {category.questions.map((q, qIdx) => (
+                                    <button key={qIdx}
+                                      onClick={() => handleSearch(q)}
+                                      style={{
+                                        background: c.primaryBg,
+                                        border: `1.5px solid ${c.primaryBorder}`,
+                                        borderRadius: 20, padding: "7px 13px",
+                                        fontSize: 12, color: c.primaryColor, cursor: "pointer",
+                                        fontFamily: "Inter, sans-serif", fontWeight: 600,
+                                        transition: "all 0.2s",
+                                      }}
+                                      onMouseEnter={e => {
+                                        e.currentTarget.style.background = c.primary06;
+                                        e.currentTarget.style.borderColor = c.primaryColor;
+                                        e.currentTarget.style.color = c.primaryColor;
+                                      }}
+                                      onMouseLeave={e => {
+                                        e.currentTarget.style.background = c.primaryBg;
+                                        e.currentTarget.style.borderColor = c.primaryBorder;
+                                        e.currentTarget.style.color = c.primaryColor;
+                                      }}
+                                    >
+                                      {q}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fallback empty state if not connected */}
+                      {!dbConnected && (
+                        <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                          <div style={{
+                            width: 80, height: 80, borderRadius: 20, margin: "0 auto 22px",
+                            background: `linear-gradient(135deg, ${c.primaryBg}, rgba(167,139,250,0.12))`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            border: `2px solid ${c.primaryBorder}`,
+                            boxShadow: `0 8px 24px ${c.primaryColor}22`,
+                          }}>
+                            <Database size={36} style={{ color: c.primaryColor }} />
+                          </div>
+                          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 10px", color: c.text1, letterSpacing: "-0.02em" }}>
+                            Connect a data source
+                          </h2>
+                          <p style={{ fontSize: 14, color: c.text2, maxWidth: 420, margin: "0 auto", lineHeight: 1.7, fontFamily: "Inter, sans-serif" }}>
+                            Connect to your database to see auto-generated insights and discover recommended questions for your data.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* If no auto-insights but DB is connected */}
+                      {dbConnected && autoInsights.length === 0 && (
+                        <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                          <div style={{
+                            width: 80, height: 80, borderRadius: 20, margin: "0 auto 22px",
+                            background: `linear-gradient(135deg, ${c.primaryBg}, rgba(167,139,250,0.12))`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            border: `2px solid ${c.primaryBorder}`,
+                            boxShadow: `0 8px 24px ${c.primaryColor}22`,
+                          }}>
+                            <MessageSquare size={36} style={{ color: c.primaryColor }} />
+                          </div>
+                          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 10px", color: c.text1, letterSpacing: "-0.02em" }}>
+                            Ask anything about your data
+                          </h2>
+                          <p style={{ fontSize: 14, color: c.text2, maxWidth: 420, margin: "0 auto", lineHeight: 1.7, fontFamily: "Inter, sans-serif" }}>
+                            Type a question above, click columns on the left, or try <strong style={{ color: c.primaryColor, fontWeight: 700 }}>Discover Insights</strong> to explore your data.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -748,18 +982,18 @@ function App() {
                     <div style={{ marginBottom: 28, animation: "fadeIn 0.4s ease-out" }}>
                       <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }`}</style>
 
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                             {latestGroup.isDiscovered && (
-                              <span style={{ fontSize: 9, fontWeight: 700, color: "#C4B5FD", background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.28)", borderRadius: 4, padding: "2px 7px", letterSpacing: "0.06em", fontFamily: "Inter, sans-serif" }}>SPOTIQ</span>
+                              <span style={{ fontSize: 10, fontWeight: 800, color: "#E9D5FF", background: "rgba(192, 132, 250, 0.18)", border: "1.5px solid rgba(192, 132, 250, 0.35)", borderRadius: 5, padding: "3px 8px", letterSpacing: "0.07em", fontFamily: "Inter, sans-serif" }}>✨ SPOTIQ</span>
                             )}
-                            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#F0F4FF", letterSpacing: "-0.01em" }}>
+                            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: c.text1, letterSpacing: "-0.02em" }}>
                               "{latestGroup.question}"
                             </h3>
                           </div>
-                          <p style={{ margin: 0, fontSize: 11, color: "#475569", fontFamily: "Inter, sans-serif" }}>
-                            Use the chart type rail on the right to switch visualization
+                          <p style={{ margin: 0, fontSize: 12, color: c.text3, fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
+                            Select a visualization from the right panel to explore the data
                           </p>
                         </div>
                         <button onClick={() => removeQueryGroup(latestGroup.id)} style={{
@@ -771,13 +1005,13 @@ function App() {
 
                       {latestGroup.insight && (
                         <div style={{
-                          padding: "10px 14px", marginBottom: 14,
-                          background: "rgba(0,210,255,0.05)", borderRadius: 10,
-                          border: "1px solid rgba(0,210,255,0.1)", borderLeft: "3px solid #00D2FF",
-                          display: "flex", alignItems: "flex-start", gap: 8,
+                          padding: "12px 16px", marginBottom: 16,
+                          background: "rgba(0,210,255,0.08)", borderRadius: 10,
+                          border: "1.5px solid rgba(0,210,255,0.2)", borderLeft: "4px solid #00D2FF",
+                          display: "flex", alignItems: "flex-start", gap: 10,
                         }}>
-                          <Sparkles size={14} style={{ color: "#67E8F9", flexShrink: 0, marginTop: 2 }} />
-                          <p style={{ margin: 0, fontSize: 12, color: "#93C5FD", lineHeight: 1.5, fontFamily: "Inter, sans-serif" }}>
+                          <Sparkles size={16} style={{ color: "#00D2FF", flexShrink: 0, marginTop: 1 }} />
+                          <p style={{ margin: 0, fontSize: 13, color: "#C7F0FF", lineHeight: 1.6, fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
                             {latestGroup.insight}
                           </p>
                         </div>
@@ -800,38 +1034,62 @@ function App() {
                   {/* No previous results — they move to Answers tab when new query fires */}
                 </div>
 
-                {/* ── RIGHT: Chart Type Rail ── */}
-                {latestGroup && (
+                {/* ── RIGHT: Suggestion Switcher ── */}
+                {latestGroup && latestGroup.suggestions.length > 0 && (
                   <div style={{
-                    width: 62, flexShrink: 0,
-                    borderLeft: "1px solid rgba(0,210,255,0.07)",
-                    background: "rgba(8,6,43,0.5)",
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    paddingTop: 14, gap: 2,
+                    width: 140, flexShrink: 0,
+                    borderLeft: `1.5px solid ${c.primaryBorder}`,
+                    background: c.columnBrowserBg,
+                    display: "flex", flexDirection: "column",
+                    padding: "14px 10px", gap: 8, overflowY: "auto",
                   }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8, fontFamily: "Inter, sans-serif" }}>
-                      Chart
+                    <div style={{
+                      fontSize: 11, fontWeight: 800, color: c.primaryColor,
+                      textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4,
+                      fontFamily: "Inter, sans-serif", textAlign: "center", paddingBottom: 8,
+                      borderBottom: `1px solid ${c.primary06}`,
+                    }}>
+                      🎨 Visualize
                     </div>
-                    {CHART_TYPE_OPTIONS.map(opt => {
-                      const isActive = (activeChartType || latestGroup.suggestions[0]?.chart_type) === opt.type;
+                    {latestGroup.suggestions.map((sug, idx) => {
+                      const isActive = activeSuggestionIndex === idx;
+                      // Find icon for this chart type
+                      const chartTypeOpt = CHART_TYPE_OPTIONS.find(opt => opt.type === sug.chart_type);
+                      const icon = chartTypeOpt ? chartTypeOpt.icon(isActive) : null;
+                      const label = sug.label || (chartTypeOpt?.label || sug.chart_type).replace("_", " ");
                       return (
-                        <button key={opt.type}
-                          onClick={() => setActiveChartType(opt.type)}
-                          title={opt.label}
+                        <button key={idx}
+                          onClick={() => setActiveSuggestionIndex(idx)}
+                          title={sug.title || label}
                           style={{
-                            width: 48, height: 40,
-                            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-                            background: isActive ? "rgba(0,210,255,0.12)" : "transparent",
-                            border: isActive ? "1px solid rgba(0,210,255,0.35)" : "1px solid transparent",
-                            borderRadius: 8, cursor: "pointer",
-                            transition: "all 0.15s",
+                            width: "100%", minHeight: 56,
+                            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+                            background: isActive ? c.primaryBg : "transparent",
+                            border: isActive ? `1.5px solid ${c.primaryColor}` : `1px solid ${c.primary06}`,
+                            borderRadius: 10, cursor: "pointer",
+                            transition: "all 0.2s", padding: "8px 6px",
                           }}
-                          onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                          onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                          onMouseEnter={e => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = c.primary05;
+                              e.currentTarget.style.borderColor = c.primaryBorder;
+                            }
+                          }}
+                          onMouseLeave={e => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = "transparent";
+                              e.currentTarget.style.borderColor = c.primary06;
+                            }
+                          }}
                         >
-                          {opt.icon(isActive)}
-                          <span style={{ fontSize: 8, color: isActive ? "#67E8F9" : "#475569", fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
-                            {opt.label}
+                          <div style={{ width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {icon}
+                          </div>
+                          <span style={{
+                            fontSize: 12, color: isActive ? c.primaryColor : c.text3, fontFamily: "Inter, sans-serif",
+                            fontWeight: isActive ? 700 : 600, textAlign: "center", lineHeight: 1.2, wordBreak: "break-word"
+                          }}>
+                            {label}
                           </span>
                         </button>
                       );
@@ -910,7 +1168,7 @@ function App() {
                 </button>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, gap: 16 }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: "#F0F4FF" }}>
                     {activeDashboard?.name || "Liveboard"}
@@ -921,6 +1179,14 @@ function App() {
                       : `${pinnedWidgets.length} widget${pinnedWidgets.length !== 1 ? "s" : ""} · Click elements to cross-filter`}
                   </p>
                 </div>
+                {pinnedWidgets.length > 0 && (
+                  <button onClick={() => setClearConfirm("pinboard")} style={{
+                    background: "rgba(244,63,94,0.12)", border: "1px solid rgba(244,63,94,0.3)",
+                    borderRadius: 8, padding: "8px 12px", cursor: "pointer",
+                    color: "#F43F5E", fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+                    whiteSpace: "nowrap", flexShrink: 0,
+                  }}>Clear All</button>
+                )}
               </div>
 
               {/* Global filter bar */}
@@ -1078,13 +1344,23 @@ function App() {
           {/* ═══ ANSWERS TAB ════════════════════════════════ */}
           {activeTab === "answers" && (
             <>
-              <div style={{ marginBottom: 20 }}>
-                <h2 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", color: "#F0F4FF" }}>
-                  Answers
-                </h2>
-                <p style={{ margin: 0, fontSize: 13, color: "#475569", fontFamily: "Inter, sans-serif" }}>
-                  All your past queries and insights
-                </p>
+              <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <h2 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", color: "#F0F4FF" }}>
+                    Answers
+                  </h2>
+                  <p style={{ margin: 0, fontSize: 13, color: "#475569", fontFamily: "Inter, sans-serif" }}>
+                    All your past queries and insights
+                  </p>
+                </div>
+                {answers.length > 0 && (
+                  <button onClick={() => setClearConfirm("answers")} style={{
+                    background: "rgba(244,63,94,0.12)", border: "1px solid rgba(244,63,94,0.3)",
+                    borderRadius: 8, padding: "8px 12px", cursor: "pointer",
+                    color: "#F43F5E", fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+                    whiteSpace: "nowrap", marginLeft: 16,
+                  }}>Clear All</button>
+                )}
               </div>
 
               {answers.length === 0 ? (
@@ -1271,6 +1547,57 @@ function App() {
             </>
           )}
         </main>
+
+        {/* Clear Confirmation Modal */}
+        {clearConfirm && (
+          <div style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 9999,
+          }}>
+            <div style={{
+              background: "#0F1419",
+              border: "1px solid rgba(0,210,255,0.3)",
+              borderRadius: 16, padding: 32, maxWidth: 380, width: "90%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+              fontFamily: "Inter, sans-serif",
+            }}>
+              <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#F0F4FF" }}>
+                Clear {clearConfirm === "pinboard" ? "Pinboard" : clearConfirm === "answers" ? "Answers" : "History"}?
+              </h3>
+              <p style={{ margin: "0 0 24px", fontSize: 13, color: "#94a3b8" }}>
+                This action cannot be undone.
+              </p>
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                <button onClick={() => setClearConfirm(null)} style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 8, padding: "8px 16px", cursor: "pointer",
+                  color: "#cbd5e1", fontSize: 13, fontWeight: 600,
+                  fontFamily: "Inter, sans-serif",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}>
+                  Cancel
+                </button>
+                <button onClick={handleClearConfirmed} style={{
+                  background: "rgba(244,63,94,0.88)",
+                  border: "1px solid rgba(244,63,94,0.5)",
+                  borderRadius: 8, padding: "8px 16px", cursor: "pointer",
+                  color: "#fff", fontSize: 13, fontWeight: 600,
+                  fontFamily: "Inter, sans-serif",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(244,63,94,1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(244,63,94,0.88)"; }}>
+                  Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

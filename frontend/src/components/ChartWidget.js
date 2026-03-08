@@ -3,6 +3,10 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, Brush, Label, LabelList,
+  ScatterChart, Scatter, ZAxis,
+  ComposedChart,
+  Sankey, Treemap,
+  RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import { Pin, PinOff, Table2, Mail, Code2 } from "lucide-react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
@@ -541,6 +545,10 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
       );
     }
 
+    case "table": {
+      return <DataTable widget={widget} chartHeight={chartHeight} />;
+    }
+
     case "geo_map": {
       const metricKey = yKeys[0];
       const regionData = {};
@@ -640,6 +648,221 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
       );
     }
 
+    case "scatter": {
+      const scatterData = data.slice(0, 100); // Limit to 100 points for performance
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <ScatterChart margin={{ top: 20, right: 20, left: 0, bottom: compact ? 20 : 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} />
+            <XAxis type="number" dataKey={xKey} tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis type="number" dataKey={yKeys[0] || "value"} tick={axisStyle} axisLine={false} tickLine={false} />
+            {tip()}
+            <Scatter data={scatterData} fill="#00D2FF" fillOpacity={0.8}>
+              {scatterData.map((entry, i) => (
+                <Cell key={i} fill="#00D2FF" fillOpacity={0.8} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    case "bubble": {
+      const bubbleData = data.slice(0, 50);
+      const size2Key = yKeys[1] || yKeys[0];
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <ScatterChart margin={{ top: 20, right: 20, left: 0, bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} />
+            <XAxis type="number" dataKey={xKey} tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis type="number" dataKey={yKeys[0] || "value"} tick={axisStyle} axisLine={false} tickLine={false} />
+            <ZAxis type="number" dataKey={size2Key} range={[40, 400]} />
+            {tip()}
+            <Scatter data={bubbleData} fill="#A78BFA" fillOpacity={0.6}>
+              {bubbleData.map((entry, i) => (
+                <Cell key={i} fill="#A78BFA" fillOpacity={0.6} />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    case "heatmap": {
+      if (!xKey || !yKeys || yKeys.length === 0) {
+        return <div style={{ color: "#475569", padding: 20, textAlign: "center", fontSize: 12 }}>Invalid data format for heatmap</div>;
+      }
+      const uniqueX = [...new Set(data.map(d => String(d[xKey])))];
+      const uniqueY = [...new Set(data.map(d => Object.keys(d).filter(k => k !== xKey && k !== "id")[0]).filter(Boolean))];
+      const heatmapData = data;
+      const values = heatmapData.map(d => Number(d[yKeys[0]]) || 0).filter(v => !isNaN(v));
+      const minVal = Math.min(...values);
+      const maxVal = Math.max(...values);
+      const interpolateColor = (val) => {
+        const norm = (val - minVal) / (maxVal - minVal || 1);
+        const dark = [13, 11, 46];
+        const cyan = [0, 210, 255];
+        return `rgb(${Math.round(dark[0] + (cyan[0] - dark[0]) * norm)},${Math.round(dark[1] + (cyan[1] - dark[1]) * norm)},${Math.round(dark[2] + (cyan[2] - dark[2]) * norm)})`;
+      };
+      return (
+        <div style={{ padding: 16, overflowX: "auto", height: chartHeight }}>
+          <table style={{ borderCollapse: "collapse", fontSize: 11, fontFamily: "Inter, sans-serif" }}>
+            <tbody>
+              {heatmapData.slice(0, 20).map((row, i) => (
+                <tr key={i}>
+                  <td style={{ padding: 8, color: "#94a3b8", textAlign: "right", minWidth: 60, fontWeight: 600, fontSize: 10 }}>{row[xKey]}</td>
+                  {yKeys.map((key, j) => {
+                    const val = Number(row[key]) || 0;
+                    return (
+                      <td key={j} style={{ width: 50, height: 40, background: interpolateColor(val), padding: 4, textAlign: "center", color: "#fff", fontSize: 10, fontWeight: 600, border: `1px solid rgba(0,0,0,0.1)`, cursor: "default" }}>
+                        {formatValue(val, valueFormat)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    case "gauge": {
+      const value = Number(data?.[0]?.[yKeys[0]] || 0);
+      const max = Number(config.max || 100);
+      const kpiLabel = config.kpi_label || yKeys[0];
+      const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+      const color = percentage < 33 ? "#EF4444" : percentage < 67 ? "#F59E0B" : "#10B981";
+      return (
+        <div style={{ height: chartHeight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="240" height="160" style={{ overflow: "visible" }}>
+            <defs>
+              <linearGradient id={`${uid}gaugeGrad`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#EF4444" />
+                <stop offset="50%" stopColor="#F59E0B" />
+                <stop offset="100%" stopColor="#10B981" />
+              </linearGradient>
+            </defs>
+            {/* Background arc */}
+            <path d="M 30 120 A 90 90 0 0 1 210 120" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="12" />
+            {/* Filled arc */}
+            <path d={`M 30 120 A 90 90 0 0 1 ${30 + Math.min(180 * (percentage / 100), 180)} ${120 - (Math.sin(Math.PI * (percentage / 100)) * 90)}`} fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
+            {/* Center label */}
+            <text x="120" y="110" textAnchor="middle" fontSize="32" fontWeight="700" fill="#00D2FF" fontFamily="Inter, sans-serif">
+              {formatValue(value, valueFormat)}
+            </text>
+            <text x="120" y="140" textAnchor="middle" fontSize="12" fill="#94a3b8" fontFamily="Inter, sans-serif">
+              {kpiLabel}
+            </text>
+          </svg>
+        </div>
+      );
+    }
+
+    case "waterfall": {
+      const waterfallData = data.map((d, i) => {
+        const val = Number(d[yKeys[0]] || 0);
+        return {
+          ...d,
+          value: val,
+          delta: val,
+        };
+      });
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <BarChart data={waterfallData} margin={{ top: 20, right: 20, left: 0, bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} vertical={false} />
+            <XAxis dataKey={xKey} tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
+            {tip()}
+            <Bar dataKey="value" fill="none" radius={[5, 5, 0, 0]}>
+              {waterfallData.map((entry, i) => (
+                <Cell key={i} fill={entry.value >= 0 ? "#10B981" : "#F43F5E"} />
+              ))}
+              <LabelList dataKey="delta" position="top" formatter={(v) => formatValue(v, valueFormat)} style={{ fontSize: 11, fill: "#94a3b8", fontFamily: "Inter, sans-serif", fontWeight: 600 }} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    case "combo": {
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <ComposedChart data={data} margin={{ top: 20, right: 80, left: 0, bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} vertical={false} />
+            <XAxis dataKey={xKey} tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="left" tick={axisStyle} axisLine={false} tickLine={false} />
+            {yKeys.length > 1 && <YAxis yAxisId="right" orientation="right" tick={axisStyle} axisLine={false} tickLine={false} />}
+            {tip()}
+            <Legend wrapperStyle={legendStyle} />
+            {yKeys.length > 0 && (
+              <Bar yAxisId="left" dataKey={yKeys[0]} fill="#00D2FF" fillOpacity={0.88} radius={[5, 5, 0, 0]} />
+            )}
+            {yKeys.length > 1 && (
+              <Line yAxisId="right" type="monotone" dataKey={yKeys[1]} stroke="#F59E0B" strokeWidth={2.5} dot={{ r: 4, fill: "#F59E0B" }} />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    case "sankey": {
+      const uniqueNodes = [];
+      const nodeMap = {};
+      const links = [];
+      data.slice(0, 20).forEach(row => {
+        const source = String(row[xKey]);
+        const target = String(row[yKeys[0]]);
+        const value = Number(row[yKeys[1]] || 1);
+        if (!nodeMap[source]) {
+          nodeMap[source] = { name: source };
+          uniqueNodes.push(nodeMap[source]);
+        }
+        if (!nodeMap[target]) {
+          nodeMap[target] = { name: target };
+          uniqueNodes.push(nodeMap[target]);
+        }
+        links.push({
+          source: uniqueNodes.findIndex(n => n.name === source),
+          target: uniqueNodes.findIndex(n => n.name === target),
+          value,
+        });
+      });
+      const sankeyData = { nodes: uniqueNodes, links };
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <Sankey data={sankeyData} node={{ fill: "#00D2FF", fillOpacity: 0.8 }} link={{ stroke: "rgba(0,210,255,0.15)", strokeOpacity: 0.5 }} margin={{ top: 20, right: 160, left: 20, bottom: 20 }}>
+            <Tooltip content={<CustomTooltip valueFormat={valueFormat} />} wrapperStyle={TOOLTIP_WRAPPER} />
+          </Sankey>
+        </ResponsiveContainer>
+      );
+    }
+
+    case "treemap": {
+      const treemapData = data.slice(0, 50).map((d, i) => ({
+        name: String(d[xKey]),
+        size: Math.max(Number(d[yKeys[0]]) || 0, 1),
+      }));
+      const TreemapContent = (props) => {
+        const { x, y, width, height, name, size } = props;
+        if (width < 40 || height < 20) return null;
+        return (
+          <g>
+            <rect x={x} y={y} width={width} height={height} fill={COLORS[Math.floor(Math.random() * COLORS.length)]} fillOpacity={0.8} stroke="rgba(0,0,0,0.1)" />
+            <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle" fontSize={11} fontWeight={600} fill="#fff" fontFamily="Inter, sans-serif" overflow="hidden" style={{ pointerEvents: "none" }}>
+              {name.length > 10 ? name.substring(0, 10) + "..." : name}
+            </text>
+          </g>
+        );
+      };
+      return (
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <Treemap data={treemapData} dataKey="size" fill="#8884d8" content={<TreemapContent />} stroke="rgba(0,0,0,0.1)" />
+        </ResponsiveContainer>
+      );
+    }
+
     default:
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
@@ -680,13 +903,13 @@ function DataTable({ widget, chartHeight }) {
 
   return (
     <div style={{ height: h, overflowY: "auto", borderRadius: 10 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ position: "sticky", top: 0, background: "rgba(8,6,43,0.99)", zIndex: 1 }}>
             {columns.map(col => (
               <th key={col} style={{
                 padding: "9px 12px", textAlign: "left", color: "#475569",
-                fontWeight: 600, fontSize: 10, textTransform: "uppercase",
+                fontWeight: 600, fontSize: 12, textTransform: "uppercase",
                 letterSpacing: "0.06em", borderBottom: "1px solid rgba(0,210,255,0.1)",
                 whiteSpace: "nowrap", fontFamily: "Inter, sans-serif",
               }}>{col.replace(/_/g, " ")}</th>
