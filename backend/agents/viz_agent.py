@@ -116,7 +116,7 @@ QUALITY RULES:
 
 async def recommend_charts(question: str, intent: dict, columns: list, data: list) -> list:
     """
-    LLM-powered chart recommendation with rule-based fallback.
+    Hybrid recommendation: Rule-based for known patterns, LLM for complex cases.
     Returns 3-4 chart suggestions with correct axis mappings.
     """
     if not data or not columns:
@@ -128,7 +128,28 @@ async def recommend_charts(question: str, intent: dict, columns: list, data: lis
             "label": "No Data"
         }]
 
-    # Try LLM-powered recommendation first
+    # Check for strong pattern matches that should use rule-based (more reliable)
+    q_lower = question.lower()
+    strong_patterns = [
+        ("funnel", ["funnel", "pipeline", "stage", "conversion"]),
+        ("waterfall", ["waterfall", "breakdown", "contribution"]),
+        ("scatter", ["correlation", "relationship", "vs "]),
+    ]
+
+    has_strong_pattern = any(
+        any(keyword in q_lower for keyword in keywords)
+        for pattern, keywords in strong_patterns
+    )
+
+    # If strong pattern detected or has "stage" column, use rule-based (more reliable for these)
+    if has_strong_pattern or "stage" in [c.lower() for c in columns]:
+        print(f"[VIZ] USING RULE-BASED for: {question}")
+        print(f"[VIZ] Columns: {columns}, has_strong_pattern={has_strong_pattern}")
+        return _rule_based_recommend(question, intent, columns, data)
+
+    print(f"[VIZ] USING LLM for: {question}")
+
+    # For other queries, try LLM
     try:
         suggestions = await _llm_recommend(question, intent, columns, data)
         if suggestions:
@@ -220,7 +241,10 @@ Data sample: {json.dumps(sample, default=str)}"""
 
         valid.append(s)
 
-    return valid[:4] if valid else None
+    result = valid[:4] if valid else None
+    if result:
+        print(f"[RULE-BASED] Returning: {result[0]['chart_type']} (first suggestion)")
+    return result
 
 
 # ── Improved rule-based fallback ──────────────────────────────────
@@ -247,6 +271,8 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
 
     # Enhanced pattern matching for chart types
     is_funnel = any(word in q for word in ["funnel", "pipeline", "stage", "conversion"]) or "stage" in [c.lower() for c in columns]
+    print(f"[RULE-BASED] Question: {question}")
+    print(f"[RULE-BASED] is_funnel={is_funnel}, num_rows={num_rows}, metrics={metrics}")
     is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "composition", "stack"])
     is_correlation = any(word in q for word in ["correlation", "relationship", "compare", "vs ", "versus"])
     is_scatter = is_correlation and len(metrics) >= 2
@@ -298,6 +324,7 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
 
     elif is_funnel:
         # Funnel chart for pipeline/stage/conversion analysis
+        print(f"[RULE-BASED] MATCHED FUNNEL!")
         suggestions.append(_build("funnel", title, f"{_names(metrics)} by {dim}", dim, metrics, "Funnel Chart", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
@@ -373,7 +400,10 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
             }
         })
 
-    return suggestions[:4]
+    final = suggestions[:4]
+    if final:
+        print(f"[RULE-BASED] FINAL RETURN: {[s['chart_type'] for s in final]}")
+    return final
 
 
 # ── Helper functions ──────────────────────────────────────────────
