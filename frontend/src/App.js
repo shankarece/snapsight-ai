@@ -536,11 +536,11 @@ function App() {
           <button style={tabBtn(activeTab === "search")} onClick={() => setActiveTab("search")}>
             <MessageSquare size={15} /> Ask
           </button>
-          <button style={tabBtn(activeTab === "answers")} onClick={() => setActiveTab("answers")}>
-            <TrendingUp size={15} /> Answers <span style={{ background: c.primaryBg, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700 }}>({answers.length})</span>
-          </button>
           <button style={tabBtn(activeTab === "dashboard")} onClick={() => setActiveTab("dashboard")}>
             <LayoutDashboard size={15} /> Liveboard <span style={{ background: c.primaryBg, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700 }}>({pinnedWidgets.length})</span>
+          </button>
+          <button style={tabBtn(activeTab === "answers")} onClick={() => setActiveTab("answers")}>
+            <TrendingUp size={15} /> Answers <span style={{ background: c.primaryBg, borderRadius: 4, padding: "2px 6px", fontSize: 11, fontWeight: 700 }}>({answers.length})</span>
           </button>
           <button style={tabBtn(activeTab === "library")} onClick={() => setActiveTab("library")}>
             <BookOpen size={15} /> Library

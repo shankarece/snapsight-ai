@@ -903,14 +903,14 @@ function DataTable({ widget, chartHeight }) {
 
   return (
     <div style={{ height: h, overflowY: "auto", borderRadius: 10 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
         <thead>
           <tr style={{ position: "sticky", top: 0, background: "rgba(8,6,43,0.99)", zIndex: 1 }}>
             {columns.map(col => (
               <th key={col} style={{
-                padding: "9px 12px", textAlign: "left", color: "#475569",
-                fontWeight: 600, fontSize: 12, textTransform: "uppercase",
-                letterSpacing: "0.06em", borderBottom: "1px solid rgba(0,210,255,0.1)",
+                padding: "11px 14px", textAlign: "left", color: "#64748B",
+                fontWeight: 700, fontSize: 13, textTransform: "uppercase",
+                letterSpacing: "0.08em", borderBottom: "1px solid rgba(0,210,255,0.15)",
                 whiteSpace: "nowrap", fontFamily: "Inter, sans-serif",
               }}>{col.replace(/_/g, " ")}</th>
             ))}
@@ -925,8 +925,8 @@ function DataTable({ widget, chartHeight }) {
             >
               {columns.map(col => (
                 <td key={col} style={{
-                  padding: "7px 12px", color: "#cbd5e1",
-                  borderBottom: "1px solid rgba(255,255,255,0.03)", whiteSpace: "nowrap",
+                  padding: "9px 14px", color: "#e2e8f0", fontSize: 13, fontWeight: 500,
+                  borderBottom: "1px solid rgba(255,255,255,0.04)", whiteSpace: "nowrap",
                   fontFamily: "Inter, sans-serif",
                 }}>
                   {typeof row[col] === "number" ? formatValue(row[col], tableFormat) : String(row[col] ?? "")}
