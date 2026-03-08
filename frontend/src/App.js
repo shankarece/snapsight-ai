@@ -108,6 +108,9 @@ function App() {
   const [catalogInsights, setCatalogInsights] = useState([]); // possible questions catalog
   const [dbConnected, setDbConnected] = useState(false); // DB connection status
   const [clearConfirm, setClearConfirm] = useState(null); // null | "answers" | "history" | "pinboard"
+  const [followUpInputs, setFollowUpInputs] = useState({}); // { groupId: input value }
+  const [conversationHistory, setConversationHistory] = useState({}); // { groupId: [{ Q, A }, ...] }
+  const [suggestedFollowUps, setSuggestedFollowUps] = useState({}); // { groupId: [suggestions] }
   const [answers, setAnswers] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("ss_answers") || "[]");
@@ -315,7 +318,12 @@ function App() {
         : await askQuestion(question);
       addToHistory(question);
       // Only show latest result in Ask tab
-      setQueryResults([buildQueryGroup(response, Date.now())]);
+      const newGroup = buildQueryGroup(response, Date.now());
+      setQueryResults([newGroup]);
+      // Generate follow-up suggestions based on the insight
+      if (response.insight) {
+        generateFollowUpSuggestions(newGroup.id, question, response.insight);
+      }
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -397,6 +405,38 @@ function App() {
 
   const removeQueryGroup = (groupId) => setQueryResults(prev => prev.filter(g => g.id !== groupId));
   const isPinned = (widgetId) => pinnedWidgets.some(w => w.id === widgetId);
+
+  const handleFollowUpQuestion = async (groupId, question) => {
+    if (!question.trim()) return;
+    setFollowUpInputs(prev => ({ ...prev, [groupId]: "" }));
+    setIsLoading(true);
+    try {
+      const response = await askQuestion(question);
+      const newQueryGroup = buildQueryGroup(response, Date.now());
+      // Add to conversation history
+      setConversationHistory(prev => ({
+        ...prev,
+        [groupId]: [...(prev[groupId] || []), { q: question, a: response.insight }]
+      }));
+      // Show new results
+      setQueryResults([newQueryGroup]);
+      setActiveTab("search");
+    } catch (err) {
+      setError(`Follow-up failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateFollowUpSuggestions = (groupId, question, insight) => {
+    // Generate 3 follow-up suggestions based on the insight
+    const suggestions = [
+      `Break down by the next dimension`,
+      `Show how this compares to last period`,
+      `What are the top drivers of this result?`,
+    ];
+    setSuggestedFollowUps(prev => ({ ...prev, [groupId]: suggestions }));
+  };
 
   const filterOptions = {
     region:           [...new Set(pinnedWidgets.flatMap(w => (w.data || []).map(r => r.region).filter(Boolean)))],
@@ -1014,6 +1054,73 @@ function App() {
                           <p style={{ margin: 0, fontSize: 13, color: "#C7F0FF", lineHeight: 1.6, fontFamily: "Inter, sans-serif", fontWeight: 500 }}>
                             {latestGroup.insight}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Follow-up Questions Section */}
+                      {latestGroup && (
+                        <div style={{ padding: "12px 0", borderTop: `1px solid ${c.primary06}`, marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: c.text2, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "Inter, sans-serif" }}>
+                            💬 Follow-up Questions
+                          </div>
+
+                          {/* Suggested follow-ups */}
+                          {(suggestedFollowUps[latestGroup.id] || []).length > 0 && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                              {(suggestedFollowUps[latestGroup.id] || []).map((sugg, i) => (
+                                <button key={i}
+                                  onClick={() => {
+                                    const fullQuestion = sugg;
+                                    handleFollowUpQuestion(latestGroup.id, fullQuestion);
+                                  }}
+                                  style={{
+                                    background: "rgba(0,210,255,0.12)", border: "1px solid rgba(0,210,255,0.25)",
+                                    borderRadius: 8, padding: "8px 10px", cursor: "pointer",
+                                    color: "#67E8F9", fontSize: 11, fontWeight: 500, fontFamily: "Inter, sans-serif",
+                                    textAlign: "left", transition: "all 0.15s",
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,210,255,0.18)"; e.currentTarget.style.borderColor = "rgba(0,210,255,0.4)"; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,210,255,0.12)"; e.currentTarget.style.borderColor = "rgba(0,210,255,0.25)"; }}>
+                                  ✨ {sugg}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Custom follow-up input */}
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <input
+                              value={followUpInputs[latestGroup.id] || ""}
+                              onChange={e => setFollowUpInputs(prev => ({ ...prev, [latestGroup.id]: e.target.value }))}
+                              onKeyDown={e => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  handleFollowUpQuestion(latestGroup.id, followUpInputs[latestGroup.id] || "");
+                                }
+                              }}
+                              placeholder="Ask a follow-up question..."
+                              style={{
+                                flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(0,210,255,0.2)",
+                                borderRadius: 8, padding: "8px 10px", fontSize: 12, color: "#F0F4FF",
+                                fontFamily: "Inter, sans-serif", outline: "none",
+                              }}
+                              onFocus={e => { e.currentTarget.style.borderColor = "rgba(0,210,255,0.4)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                              onBlur={e => { e.currentTarget.style.borderColor = "rgba(0,210,255,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                            />
+                            <button
+                              onClick={() => handleFollowUpQuestion(latestGroup.id, followUpInputs[latestGroup.id] || "")}
+                              disabled={!followUpInputs[latestGroup.id]?.trim() || isLoading}
+                              style={{
+                                background: "rgba(0,210,255,0.2)", border: "1px solid rgba(0,210,255,0.3)",
+                                borderRadius: 8, padding: "8px 12px", cursor: "pointer", color: "#67E8F9",
+                                fontSize: 12, fontWeight: 600, fontFamily: "Inter, sans-serif",
+                                transition: "all 0.15s", opacity: !followUpInputs[latestGroup.id]?.trim() ? 0.5 : 1,
+                              }}
+                              onMouseEnter={e => followUpInputs[latestGroup.id]?.trim() && (e.currentTarget.style.background = "rgba(0,210,255,0.3)")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "rgba(0,210,255,0.2)")}
+                            >
+                              →
+                            </button>
+                          </div>
                         </div>
                       )}
 
