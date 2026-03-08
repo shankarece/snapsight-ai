@@ -299,6 +299,23 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
             }
         })
 
+    # Explicit chart requests (if user says "pie", "scatter", "sankey" - honor that)
+    if any(word in q for word in ["pie chart", "pie"]) and not any(w in q for w in ["donut"]):
+        suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
+        suggestions.append(_build("donut", title, f"{_names(metrics)} breakdown", dim, metrics, "Donut", columns, fmt))
+        return suggestions[:4]
+
+    if any(word in q for word in ["scatter plot", "scatter"]) and len(metrics) >= 2:
+        suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1]}", dim, metrics[:2], "Scatter Plot", columns, fmt))
+        if len(metrics) >= 3:
+            suggestions.append(_build("bubble", title, f"{metrics[0]} vs {metrics[1]} (size: {metrics[2]})", dim, metrics[:3], "Bubble Chart", columns, fmt))
+        return suggestions[:4]
+
+    if any(word in q for word in ["sankey", "flow"]) and len(metrics) >= 2:
+        suggestions.append(_build("sankey", title, f"{_names(metrics)} flow", dim, metrics, "Sankey Diagram", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        return suggestions[:4]
+
     # Priority-based chart selection (most specific first)
     if is_single:
         # KPI card for single-row results
