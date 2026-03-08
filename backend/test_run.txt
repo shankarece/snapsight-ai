@@ -1,0 +1,56 @@
+
+Make sure backend is running on port 8000...
+Starting tests...
+
+
+====================================================================================================
+AUTOMATED PHASE 1: CHART RENDERING TESTS
+====================================================================================================
+
+[PASS] BAR             | PASS  | Show sales by quarter                              | Actual: bar
+[PASS] LINE            | PASS  | Show revenue trend by month                        | Actual: line
+[FAIL] HORIZONTAL_BAR  | FAIL  | Show revenue by region                             | Actual: bar
+[FAIL] PIE             | FAIL  | Show profit share                                  | Actual: donut
+[PASS] DONUT           | PASS  | Show revenue distribution                          | Actual: donut
+[PASS] FUNNEL          | PASS  | Show sales pipeline by stage                       | Actual: funnel
+[PASS] WATERFALL       | PASS  | Show revenue breakdown by product                  | Actual: waterfall
+[PASS] COMBO           | PASS  | Compare revenue vs expenses by quarter             | Actual: combo
+[FAIL] SCATTER         | FAIL  | Show correlation between revenue and expenses      | Actual: bar
+[FAIL] BUBBLE          | FAIL  | Show customer comparison with different metrics    | Actual: bar
+[PASS] HEATMAP         | PASS  | Show sales matrix by region and product            | Actual: heatmap
+[PASS] KPI             | PASS  | What's our total revenue?                          | Actual: kpi
+[PASS] GAUGE           | PASS  | Show gauge of revenue progress                     | Actual: gauge
+[FAIL] TREEMAP         | FAIL  | Show market share by category                      | Actual: donut
+[FAIL] SANKEY          | FAIL  | Show customer flow through stages                  | Actual: funnel
+
+====================================================================================================
+SUMMARY: 9 PASSED, 6 FAILED out of 15 tests
+====================================================================================================
+
+BROKEN CHARTS TO FIX:
+  • HORIZONTAL_BAR: Show revenue by region
+    Error: Wrong chart type
+    Got: bar instead
+  • PIE: Show profit share
+    Error: Wrong chart type
+    Got: donut instead
+  • SCATTER: Show correlation between revenue and expenses
+    Error: Wrong chart type
+    Got: bar instead
+  • BUBBLE: Show customer comparison with different metrics
+    Error: Wrong chart type
+    Got: bar instead
+  • TREEMAP: Show market share by category
+    Error: Wrong chart type
+    Got: donut instead
+  • SANKEY: Show customer flow through stages
+    Error: Wrong chart type
+    Got: funnel instead
+Traceback (most recent call last):
+  File "C:\Users\shank\OneDrive\Documents\AI Training\project-bolt\project\snapsight-ai\backend\test_all_charts.py", line 161, in <module>
+    f.write(f"{status:10} | {r['expected']:15} | {r['query']}\n")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\shank\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 0: character maps to <undefined>

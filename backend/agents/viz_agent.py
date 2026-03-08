@@ -267,15 +267,17 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
 
     # Enhanced pattern matching for chart types
     is_funnel = any(word in q for word in ["funnel", "pipeline", "stage", "conversion"]) or "stage" in [c.lower() for c in columns]
-    is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "composition", "stack"])
-    is_scatter = any(word in q for word in ["correlation", "scatter", "relationship"]) and len(metrics) >= 2  # Explicit scatter request
-    is_bubble = any(word in q for word in ["bubble", "size", "volume"]) or (len(metrics) >= 3)
+    is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "stack"])
+    is_scatter = any(word in q for word in ["correlation", "scatter", "relationship"]) and len(metrics) >= 2
+    is_bubble = any(word in q for word in ["bubble", "size", "volume"]) and len(metrics) >= 3
     is_heatmap = any(word in q for word in ["heatmap", "matrix", "cross", "pivot", "cross-tab"])
     is_gauge = any(word in q for word in ["gauge", "progress", "target", "goal", "percentage", "%" ]) or (num_rows == 1 and len(metrics) == 1)
-    is_treemap = any(word in q for word in ["treemap", "hierarchy", "hierarchical", "composition", "breakdown"]) and len(metrics) >= 1
-    is_combo = (any(word in q for word in ["combo", "combine", "both", "multiple", "vs ", "versus"]) and not is_scatter) and len(metrics) >= 2  # vs → combo unless scatter
-    is_sankey = any(word in q for word in ["sankey", "flow", "path", "conversion", "journey"]) and len(metrics) >= 2
+    is_treemap = any(word in q for word in ["treemap", "hierarchy", "hierarchical"]) and len(metrics) >= 1
+    is_combo = (any(word in q for word in ["combo", "combine", "both", "multiple", "vs ", "versus"]) and not is_scatter) and len(metrics) >= 2
+    is_sankey = any(word in q for word in ["sankey", "flow", "path", "journey"]) and len(metrics) >= 2
+    is_pie = any(word in q for word in ["pie", "share", "distribution", "proportion", "breakdown"]) and not is_waterfall and not is_treemap
     is_ranking = any(word in q for word in ["top ", "bottom ", "rank", "best", "worst", "highest", "lowest"])
+    is_categorical = not is_time and len(metrics) == 1 and num_rows <= 10  # Single metric, few categories → bar/horizontal_bar
     is_single = num_rows == 1 and len(metrics) <= 2
 
     # Detect tabular/listing queries
@@ -327,10 +329,17 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
 
+    elif is_bubble and len(metrics) >= 3:
+        # Bubble for 3+ metrics
+        suggestions.append(_build("bubble", title, f"{_names(metrics[:3])} comparison", dim, metrics[:3], "Bubble Chart", columns, fmt))
+        suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1]}", dim, metrics[:2], "Scatter Plot", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+
     elif is_scatter and len(metrics) >= 2:
         # Scatter for correlation analysis
         suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1] if len(metrics) > 1 else 'values'}", dim, metrics[:2], "Scatter Plot", columns, fmt))
-        suggestions.append(_build("bubble", title, f"{metrics[0]} vs {metrics[1]}", dim, metrics[:2], "Bubble Chart", columns, fmt))
+        if len(metrics) >= 3:
+            suggestions.append(_build("bubble", title, f"{metrics[0]} vs {metrics[1]} (size: {metrics[2]})", dim, metrics[:3], "Bubble Chart", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
 
     elif is_heatmap and num_rows > 5:
@@ -351,11 +360,29 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
 
+    elif is_pie:
+        # Pie for share/distribution
+        suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
+        suggestions.append(_build("donut", title, f"{_names(metrics)} breakdown", dim, metrics, "Donut", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+
+    elif is_sankey and len(metrics) >= 2:
+        # Sankey for flow/journey analysis
+        suggestions.append(_build("sankey", title, f"{_names(metrics)} flow", dim, metrics, "Sankey Diagram", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
+
     elif is_ranking:
         # Ranking/Top N - use horizontal bar
         suggestions.append(_build("horizontal_bar", title, f"Top {dim.replace('_', ' ').title()}", dim, metrics, "Horizontal Bar", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
+
+    elif is_categorical:
+        # Single metric with few categories → horizontal bar (ranking style)
+        suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Horizontal Bar", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
 
     elif is_time:
         # Time series analysis
