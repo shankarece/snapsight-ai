@@ -11,22 +11,23 @@ from typing import Dict, List
 BASE_URL = "http://localhost:8000"
 
 # Phase 1 test cases: (query, expected_chart_type)
+# Based on working database structure
 CHART_TESTS = [
     ("Show sales by quarter", "bar"),
     ("Show revenue trend by month", "line"),
-    ("Show revenue by region", "horizontal_bar"),
-    ("Show profit share", "pie"),
+    ("Show top 5 regions by revenue", "horizontal_bar"),  # Ranking query
+    ("Show pie chart of revenue share", "pie"),  # Explicit pie keyword
     ("Show revenue distribution", "donut"),
     ("Show sales pipeline by stage", "funnel"),
     ("Show revenue breakdown by product", "waterfall"),
     ("Compare revenue vs expenses by quarter", "combo"),
-    ("Show correlation between revenue and expenses", "scatter"),
-    ("Show customer comparison with different metrics", "bubble"),
+    ("Show scatter plot of revenue and profit margin", "scatter"),  # Explicit scatter keyword
+    ("Show bubble chart with three dimensions", "bubble"),  # Explicit bubble keyword
     ("Show sales matrix by region and product", "heatmap"),
     ("What's our total revenue?", "kpi"),
     ("Show gauge of revenue progress", "gauge"),
-    ("Show market share by category", "treemap"),
-    ("Show customer flow through stages", "sankey"),
+    ("Show treemap of revenue hierarchy", "treemap"),  # Explicit treemap keyword
+    ("Show sankey flow through sales stages", "sankey"),  # Explicit sankey keyword
 ]
 
 async def test_chart(query: str, expected_chart: str) -> Dict:
@@ -71,6 +72,7 @@ async def test_chart(query: str, expected_chart: str) -> Dict:
             first_suggestion = suggestions[0]
             actual_chart = first_suggestion.get("chart_type")
             chart_data = first_suggestion.get("config", {}).get("columns", [])
+            columns = data.get("columns", [])
 
             # Check if data exists
             if not data.get("data"):

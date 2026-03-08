@@ -317,6 +317,25 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
             })
         suggestions.append(_build("bar", title, f"{_names(metrics)} comparison", dim, metrics, "Bar Chart", columns, fmt))
 
+    elif is_sankey and len(metrics) >= 2:
+        # Sankey for flow/journey analysis (check before funnel to avoid "stages" confusion)
+        suggestions.append(_build("sankey", title, f"{_names(metrics)} flow", dim, metrics, "Sankey Diagram", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
+
+    elif is_pie:
+        # Pie for share/distribution (check before fallbacks)
+        suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
+        suggestions.append(_build("donut", title, f"{_names(metrics)} breakdown", dim, metrics, "Donut", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+
+    elif is_scatter and len(metrics) >= 2:
+        # Scatter for correlation analysis (check before fallbacks)
+        suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1] if len(metrics) > 1 else 'values'}", dim, metrics[:2], "Scatter Plot", columns, fmt))
+        if len(metrics) >= 3:
+            suggestions.append(_build("bubble", title, f"{metrics[0]} vs {metrics[1]} (size: {metrics[2]})", dim, metrics[:3], "Bubble Chart", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+
     elif is_funnel:
         # Funnel chart for pipeline/stage/conversion analysis
         suggestions.append(_build("funnel", title, f"{_names(metrics)} by {dim}", dim, metrics, "Funnel Chart", columns, fmt))
@@ -335,13 +354,6 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1]}", dim, metrics[:2], "Scatter Plot", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
 
-    elif is_scatter and len(metrics) >= 2:
-        # Scatter for correlation analysis
-        suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1] if len(metrics) > 1 else 'values'}", dim, metrics[:2], "Scatter Plot", columns, fmt))
-        if len(metrics) >= 3:
-            suggestions.append(_build("bubble", title, f"{metrics[0]} vs {metrics[1]} (size: {metrics[2]})", dim, metrics[:3], "Bubble Chart", columns, fmt))
-        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
-
     elif is_heatmap and num_rows > 5:
         # Heatmap for cross-tab analysis
         suggestions.append(_build("heatmap", title, f"{_names(metrics)} matrix", dim, metrics, "Heatmap", columns, fmt))
@@ -357,18 +369,6 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
     elif is_combo and len(metrics) >= 2:
         # Combo for multiple metrics comparison
         suggestions.append(_build("combo", title, f"{_names(metrics)} combined view", dim, metrics, "Combo Chart", columns, fmt))
-        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
-        suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
-
-    elif is_pie:
-        # Pie for share/distribution
-        suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
-        suggestions.append(_build("donut", title, f"{_names(metrics)} breakdown", dim, metrics, "Donut", columns, fmt))
-        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
-
-    elif is_sankey and len(metrics) >= 2:
-        # Sankey for flow/journey analysis
-        suggestions.append(_build("sankey", title, f"{_names(metrics)} flow", dim, metrics, "Sankey Diagram", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
 
