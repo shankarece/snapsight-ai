@@ -143,11 +143,7 @@ async def recommend_charts(question: str, intent: dict, columns: list, data: lis
 
     # If strong pattern detected or has "stage" column, use rule-based (more reliable for these)
     if has_strong_pattern or "stage" in [c.lower() for c in columns]:
-        print(f"[VIZ] USING RULE-BASED for: {question}")
-        print(f"[VIZ] Columns: {columns}, has_strong_pattern={has_strong_pattern}")
         return _rule_based_recommend(question, intent, columns, data)
-
-    print(f"[VIZ] USING LLM for: {question}")
 
     # For other queries, try LLM
     try:
@@ -271,8 +267,6 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
 
     # Enhanced pattern matching for chart types
     is_funnel = any(word in q for word in ["funnel", "pipeline", "stage", "conversion"]) or "stage" in [c.lower() for c in columns]
-    print(f"[RULE-BASED] Question: {question}")
-    print(f"[RULE-BASED] is_funnel={is_funnel}, num_rows={num_rows}, metrics={metrics}")
     is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "composition", "stack"])
     is_correlation = any(word in q for word in ["correlation", "relationship", "compare", "vs ", "versus"])
     is_scatter = is_correlation and len(metrics) >= 2
@@ -324,7 +318,6 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
 
     elif is_funnel:
         # Funnel chart for pipeline/stage/conversion analysis
-        print(f"[RULE-BASED] MATCHED FUNNEL!")
         suggestions.append(_build("funnel", title, f"{_names(metrics)} by {dim}", dim, metrics, "Funnel Chart", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
@@ -400,10 +393,7 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
             }
         })
 
-    final = suggestions[:4]
-    if final:
-        print(f"[RULE-BASED] FINAL RETURN: {[s['chart_type'] for s in final]}")
-    return final
+    return suggestions[:4]
 
 
 # ── Helper functions ──────────────────────────────────────────────

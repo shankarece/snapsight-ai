@@ -193,7 +193,6 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
   const isDark = theme === "dark";
 
   const { chart_type, data, chart_config } = widget;
-  console.log("[ChartWidget] Rendering chart_type:", chart_type);
   const config = chart_config || {};
   const xKey = config.x_key || (data && data[0] ? Object.keys(data[0])[0] : "");
   const yKeys = config.y_keys || (data && data[0] ? Object.keys(data[0]).slice(1) : []);
@@ -230,7 +229,6 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
 
   const legendStyle = { fontSize: 13, paddingTop: 8, fontFamily: "Inter, sans-serif", color: isDark ? "#94a3b8" : "#6B7280", fontWeight: 500 };
 
-  console.log("[Switch] Processing chart_type:", chart_type);
   switch (chart_type) {
     case "bar":
     case "grouped_bar": {
@@ -282,7 +280,6 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
     }
 
     case "horizontal_bar": {
-      console.log("[HorizontalBar] Rendering horizontal bar chart");
       const hBarColors = yKeys.length === 1
         ? data.map((_, i) => categoricalColors[i % categoricalColors.length])
         : null;
@@ -464,7 +461,6 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
     }
 
     case "funnel": {
-      console.log("[Funnel] Rendering funnel chart with key:", yKeys[0]);
       const funnelKey = yKeys[0] || "count";
       const maxVal = data[0] ? data[0][funnelKey] : 1;
       return (
