@@ -358,15 +358,26 @@ function App() {
     handleSearch(question);
   };
 
-  // Drill-down from Liveboard → cross-filter only (no new charts)
+  // Drill-down from Liveboard → cross-filter all widgets
   const handleLiveboardDrillDown = ({ dimension, value, sourceWidgetId }) => {
     if (!value || !liveboardFilterEnabled) return;
-    // Toggle: click same selection again to clear
-    setLiveboardFilter(prev =>
-      prev && prev.dimension === dimension && String(prev.value) === String(value)
-        ? null
-        : { dimension, value, sourceWidgetId }
-    );
+
+    // Toggle: click same filter again to remove it
+    setPinboardFilters(prev => {
+      const current = prev[dimension];
+      const newValue = String(current) === String(value) ? null : String(value);
+      return { ...prev, [dimension]: newValue };
+    });
+  };
+
+  // Remove a specific filter
+  const removeFilter = (filterKey) => {
+    setPinboardFilters(prev => ({ ...prev, [filterKey]: null }));
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setPinboardFilters(Object.keys(pinboardFilters).reduce((acc, key) => ({ ...acc, [key]: null }), {}));
   };
 
   const updateDashWidgets = (fn) => {
@@ -454,21 +465,11 @@ function App() {
     });
   };
 
-  const filteredPinnedWidgets = pinnedWidgets.map(w => {
-    let data = applyFilters(w.data);
-    // Cross-filter: only filter rows when this widget actually has the filtered column.
-    // Widgets without the column are visually dimmed (via opacity) but data is left intact.
-    if (liveboardFilter && liveboardFilter.sourceWidgetId !== w.id) {
-      const hasColumn = data.length > 0 && liveboardFilter.dimension in data[0];
-      if (hasColumn) {
-        data = data.filter(row =>
-          String(row[liveboardFilter.dimension]) === String(liveboardFilter.value)
-        );
-      }
-    }
-    return { ...w, data };
-  });
-  const activeFiltersCount    = Object.values(pinboardFilters).filter(Boolean).length;
+  const filteredPinnedWidgets = pinnedWidgets.map(w => ({
+    ...w,
+    data: applyFilters(w.data)
+  }));
+  const activeFiltersCount = Object.values(pinboardFilters).filter(Boolean).length;
 
   // ── Theme color palette ────────────────────────────────────────────────
   const colors = {
@@ -1296,7 +1297,53 @@ function App() {
                 )}
               </div>
 
-              {/* Global filter bar */}
+              {/* Filter Pills - Show active filters */}
+              {activeFiltersCount > 0 && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "10px 0", marginBottom: 12,
+                  flexWrap: "wrap",
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", fontFamily: "Inter, sans-serif" }}>
+                    🔍 Active Filters:
+                  </span>
+                  {Object.entries(pinboardFilters).filter(([_, val]) => val).map(([key, value]) => {
+                    const labels = { region: "Region", quarter: "Quarter", product_category: "Category" };
+                    return (
+                      <div key={key} style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        background: "rgba(0,210,255,0.15)", border: "1px solid rgba(0,210,255,0.3)",
+                        borderRadius: 16, padding: "6px 10px",
+                        fontFamily: "Inter, sans-serif",
+                      }}>
+                        <span style={{ fontSize: 12, color: "#67E8F9", fontWeight: 500 }}>
+                          <strong style={{ color: "#00D2FF" }}>{labels[key]}:</strong> {value}
+                        </span>
+                        <button onClick={() => removeFilter(key)} style={{
+                          background: "none", border: "none", color: "#00D2FF", cursor: "pointer",
+                          fontSize: 14, padding: "0 4px", display: "flex", alignItems: "center",
+                          transition: "color 0.15s",
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = "#00FFFF"}
+                        onMouseLeave={e => e.currentTarget.style.color = "#00D2FF"}>
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button onClick={clearAllFilters} style={{
+                    background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: 16, padding: "6px 12px", cursor: "pointer",
+                    color: "#fca5a5", fontSize: 12, fontWeight: 500, fontFamily: "Inter, sans-serif",
+                    display: "flex", alignItems: "center", gap: 5, transition: "all 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.2)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}>
+                    <X size={12} /> Clear All
+                  </button>
+                </div>
+              )}
+
+              {/* Global filter dropdown bar */}
               {pinnedWidgets.length > 0 && (
                 <div style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
@@ -1304,7 +1351,7 @@ function App() {
                   borderRadius: 12, marginBottom: 18, flexWrap: "wrap",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#475569", fontSize: 12, fontFamily: "Inter, sans-serif" }}>
-                    <Filter size={13} /> <span>Filter all widgets:</span>
+                    <Filter size={13} /> <span>Filter by:</span>
                   </div>
                   {[
                     { key: "region",           label: "Region",   opts: filterOptions.region },
@@ -1317,18 +1364,6 @@ function App() {
                       {opts.sort().map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ))}
-                  {activeFiltersCount > 0 && (
-                    <button
-                      onClick={() => setPinboardFilters({ region: null, quarter: null, product_category: null })}
-                      style={{
-                        background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.22)",
-                        borderRadius: 7, padding: "5px 12px", cursor: "pointer",
-                        color: "#fca5a5", fontSize: 11, fontFamily: "Inter, sans-serif",
-                        display: "flex", alignItems: "center", gap: 5,
-                      }}>
-                      <X size={11} /> Clear {activeFiltersCount} filter{activeFiltersCount > 1 ? "s" : ""}
-                    </button>
-                  )}
                 </div>
               )}
 
