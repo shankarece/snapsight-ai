@@ -1,0 +1,32 @@
+.App {
+  text-align: center;
+}
+
+/* ── react-grid-layout theming ───────────────────────────── */
+.react-resizable-handle {
+  background-image: none !important;
+  border-right: 2px solid rgba(0, 210, 255, 0.45);
+  border-bottom: 2px solid rgba(0, 210, 255, 0.45);
+  border-radius: 0 0 5px 0;
+  width: 14px !important;
+  height: 14px !important;
+  bottom: 4px !important;
+  right: 4px !important;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.react-grid-item:hover .react-resizable-handle {
+  opacity: 1;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(0, 210, 255, 0.06) !important;
+  border: 1px dashed rgba(0, 210, 255, 0.3) !important;
+  border-radius: 20px !important;
+  opacity: 1 !important;
+}
+
+.widget-drag-handle:active {
+  cursor: grabbing;
+}

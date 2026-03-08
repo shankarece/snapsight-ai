@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.phdata.io)",
+      "WebFetch(domain:www.thoughtspot.com)",
+      "Bash(curl:*)",
+      "Bash(npm start:*)",
+      "Bash(npx react-scripts:*)",
+      "Bash(node:*)",
+      "Bash(taskkill:*)",
+      "Bash(uvicorn main:app:*)",
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:team2.thoughtspot.cloud)"
+    ]
+  }
+}

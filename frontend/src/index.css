@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Light theme by default (ThoughtSpot style) */
+  --primary: #0052CC;
+  --primary-light: #E8F0FE;
+  --primary-border: #D2E3FC;
+  --bg: #FFFFFF;
+  --bg-sidebar: #F8FAFC;
+  --bg-hover: #F5F7FB;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+  --border-light: #F1F5F9;
+  --text-1: #111827;
+  --text-2: #374151;
+  --text-3: #6B7280;
+  --grid-line: #E5E7EB;
+  --axis-color: #4B5563;
+  --header-bg: #FFFFFF;
+  --header-border: #E5E7EB;
+}
+
+[data-theme="dark"] {
+  --primary: #4A9FFF;
+  --primary-light: rgba(74, 159, 255, 0.1);
+  --primary-border: rgba(74, 159, 255, 0.2);
+  --bg: #1A202C;
+  --bg-sidebar: #0F1419;
+  --bg-hover: #2D3748;
+  --surface: #252D38;
+  --border: #4A5568;
+  --border-light: #2D3748;
+  --text-1: #F7FAFC;
+  --text-2: #CBD5E0;
+  --text-3: #A0AEC0;
+  --grid-line: #2D3748;
+  --axis-color: #A0AEC0;
+  --header-bg: #1A202C;
+  --header-border: #4A5568;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 210, 255, 0.18);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 210, 255, 0.38);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 136, 204, 0.18);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 136, 204, 0.38);
+}
+
+/* Card hover lift — applied via className in ChartWidget */
+.chart-card {
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.28s ease;
+}
+.chart-card:hover {
+  transform: translateY(-4px);
+}
