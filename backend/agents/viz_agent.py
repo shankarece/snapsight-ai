@@ -268,13 +268,12 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
     # Enhanced pattern matching for chart types
     is_funnel = any(word in q for word in ["funnel", "pipeline", "stage", "conversion"]) or "stage" in [c.lower() for c in columns]
     is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "composition", "stack"])
-    is_correlation = any(word in q for word in ["correlation", "relationship", "compare", "vs ", "versus"])
-    is_scatter = is_correlation and len(metrics) >= 2
+    is_scatter = any(word in q for word in ["correlation", "scatter", "relationship"]) and len(metrics) >= 2  # Explicit scatter request
     is_bubble = any(word in q for word in ["bubble", "size", "volume"]) or (len(metrics) >= 3)
     is_heatmap = any(word in q for word in ["heatmap", "matrix", "cross", "pivot", "cross-tab"])
     is_gauge = any(word in q for word in ["gauge", "progress", "target", "goal", "percentage", "%" ]) or (num_rows == 1 and len(metrics) == 1)
     is_treemap = any(word in q for word in ["treemap", "hierarchy", "hierarchical", "composition", "breakdown"]) and len(metrics) >= 1
-    is_combo = any(word in q for word in ["combo", "combine", "both", "multiple"]) and len(metrics) >= 2
+    is_combo = (any(word in q for word in ["combo", "combine", "both", "multiple", "vs ", "versus"]) and not is_scatter) and len(metrics) >= 2  # vs → combo unless scatter
     is_sankey = any(word in q for word in ["sankey", "flow", "path", "conversion", "journey"]) and len(metrics) >= 2
     is_ranking = any(word in q for word in ["top ", "bottom ", "rank", "best", "worst", "highest", "lowest"])
     is_single = num_rows == 1 and len(metrics) <= 2
