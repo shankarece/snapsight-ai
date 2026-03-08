@@ -3,7 +3,7 @@
  * Handles all communication with the FastAPI backend.
  */
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
 
 export async function askQuestion(question) {
   try {

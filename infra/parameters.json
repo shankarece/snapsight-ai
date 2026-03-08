@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "snapsight-ai"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "environmentName": {
+      "value": "dev"
+    },
+    "backendImageUri": {
+      "value": "snapsightaiacr.azurecr.io/snapsight-backend:latest"
+    },
+    "frontendImageUri": {
+      "value": "snapsightaiacr.azurecr.io/snapsight-frontend:latest"
+    },
+    "azureOpenaiEndpoint": {
+      "value": "https://<your-resource-name>.openai.azure.com/"
+    },
+    "azureOpenaiKey": {
+      "value": "<your-openai-key>"
+    },
+    "azureOpenaiDeployment": {
+      "value": "gpt-4o"
+    },
+    "azureSqlServer": {
+      "value": "<your-sql-server>.database.windows.net"
+    },
+    "azureSqlDatabase": {
+      "value": "snapsight_db"
+    },
+    "azureSqlUsername": {
+      "value": "<sql-username>"
+    },
+    "azureSqlPassword": {
+      "value": "<sql-password>"
+    }
+  }
+}
