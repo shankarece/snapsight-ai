@@ -71,6 +71,9 @@ RULES:
 - For quarterly data, use the quarter column directly
 - Use GROUP BY for aggregated queries
 - Handle 'top N' requests with TOP N
+- For questions asking for 'tabular', 'table', 'list', 'show all', 'individual records' or similar:
+  Generate a plain SELECT ... FROM table with appropriate WHERE/ORDER BY — do NOT use GROUP BY or aggregate functions.
+  These should return raw row-level data, not aggregations.
 
 VISUALIZATION-FRIENDLY OUTPUT RULES (critical for correct charts):
 - ALWAYS put the dimension/category column FIRST in SELECT, metrics AFTER
@@ -114,6 +117,15 @@ async def generate_sql(question: str, intent: dict = None) -> str:
         # Safety check - only allow SELECT statements
         if not sql.upper().strip().startswith("SELECT"):
             return "SELECT TOP 20 product_category, SUM(revenue) AS total_revenue FROM sales GROUP BY product_category ORDER BY total_revenue DESC"
+
+        # Validate common column names to catch schema mismatches early
+        sql_upper = sql.upper()
+
+        # Check for common column name issues
+        if "PRODUCT_NAME" in sql_upper and "PRODUCT" in sql_upper:
+            # Warn about potential column name mismatch
+            print(f"⚠️  Warning: Query references 'product_name'. Verify this column exists in your database.")
+            print(f"    To check, run: python backend/database/check_schema.py")
 
         return sql
 

@@ -166,6 +166,58 @@ async def get_suggestions():
     }
 
 
+@app.get("/api/insights/catalog")
+async def get_insights_catalog():
+    """
+    Return a static categorized list of ~20 possible questions based on the schema.
+    No DB call — purely informational for the discovery home screen.
+    """
+    return {
+        "categories": [
+            {
+                "name": "Sales",
+                "questions": [
+                    "Show revenue trend by month for the latest year",
+                    "Break down revenue by product category",
+                    "Which region has the highest total revenue?",
+                    "Top 5 salespeople by total revenue",
+                    "Revenue vs expenses trend by quarter"
+                ]
+            },
+            {
+                "name": "Customers",
+                "questions": [
+                    "Compare new vs returning vs churned customer counts by region",
+                    "Which industry has the most customers?",
+                    "Customer lifetime value by industry",
+                    "Customer acquisition trend by month",
+                    "Customer type breakdown by region"
+                ]
+            },
+            {
+                "name": "Pipeline",
+                "questions": [
+                    "Show the sales pipeline funnel by stage",
+                    "Average deal value by pipeline stage",
+                    "Total deals by stage and region",
+                    "Deals created by month",
+                    "Expected close date distribution"
+                ]
+            },
+            {
+                "name": "Products",
+                "questions": [
+                    "Which product category has the highest profit margin?",
+                    "Monthly revenue by product category",
+                    "Product price vs monthly revenue correlation",
+                    "Top products by units sold",
+                    "Product launch date impact on revenue"
+                ]
+            }
+        ]
+    }
+
+
 # ---- Run Server ----
 if __name__ == "__main__":
     print("\n" + "=" * 50)

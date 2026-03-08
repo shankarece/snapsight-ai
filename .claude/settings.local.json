@@ -11,7 +11,18 @@
       "Bash(uvicorn main:app:*)",
       "Bash(npm run:*)",
       "Bash(ls:*)",
-      "WebFetch(domain:team2.thoughtspot.cloud)"
+      "WebFetch(domain:team2.thoughtspot.cloud)",
+      "Bash(npm install:*)",
+      "Bash(winget install:*)",
+      "Bash(gh:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(/tmp/ui_improvements_summary.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "WebSearch"
     ]
   }
 }

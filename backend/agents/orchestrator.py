@@ -45,6 +45,23 @@ async def process_question(question: str) -> dict:
         db_result = execute_query(sql)
 
         if not db_result["success"]:
+            error_msg = db_result.get('error', 'Unknown error')
+
+            # Check if it's a column name error
+            if "Invalid column name" in str(error_msg):
+                result["success"] = False
+                result["error"] = (
+                    f"Database error: {error_msg}\n\n"
+                    "📋 This suggests a column name mismatch. Your database schema may not match the expected schema.\n\n"
+                    "✅ TO FIX:\n"
+                    "1. Run the diagnostic: python backend/database/check_schema.py\n"
+                    "2. If tables are missing, run: python backend/database/seed_data.py\n"
+                    "3. If columns are different, update the schema definition."
+                )
+                result["insight"] = "The database schema doesn't match expectations. Please check your database configuration."
+                return result
+
+            # Retry with simplified query
             result["agent_steps"].append("Retrying with rephrased query...")
             sql = await generate_sql(question + " (simplify if needed)")
             result["sql"] = sql
@@ -52,8 +69,19 @@ async def process_question(question: str) -> dict:
 
         if not db_result["success"]:
             result["success"] = False
-            result["error"] = f"Database error: {db_result.get('error', 'Unknown error')}"
-            result["insight"] = "Sorry, I couldn't fetch data for this question. Try rephrasing it."
+            error_msg = db_result.get('error', 'Unknown error')
+
+            # More detailed error message
+            if "Invalid column name" in str(error_msg):
+                result["error"] = (
+                    f"Database error: {error_msg}\n\n"
+                    "The column referenced in the query doesn't exist in your database.\n"
+                    "Please verify your database tables are properly created and seeded."
+                )
+            else:
+                result["error"] = f"Database error: {error_msg}"
+
+            result["insight"] = "Sorry, I couldn't fetch data for this question. Please check your database configuration or try rephrasing."
             return result
 
         result["data"] = db_result["data"]

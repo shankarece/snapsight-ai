@@ -80,3 +80,15 @@ export async function checkHealth() {
     return { status: "error", database: "disconnected", message: "API unreachable" };
   }
 }
+
+export async function getInsightsCatalog() {
+  try {
+    const response = await fetch(`${API_BASE}/api/insights/catalog`);
+    if (!response.ok) throw new Error("Failed to load catalog");
+    const data = await response.json();
+    return data.categories || [];
+  } catch (error) {
+    console.error("Failed to load insights catalog:", error);
+    return [];
+  }
+}
