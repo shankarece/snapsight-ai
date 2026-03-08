@@ -94,8 +94,8 @@ function getSequentialColors(n, rampName = "cyan") {
 // Legacy alias for simple access
 const COLORS = CATEGORICAL_PALETTE;
 
-// Custom tooltip factory — creates theme-aware tooltip
-function makeCustomTooltip(isDark) {
+// Custom tooltip factory — creates theme-aware tooltip with rich analytics
+function makeCustomTooltip(isDark, allData = []) {
   return function CustomTooltip({ active, payload, label, valueFormat }) {
     if (!active || !payload || payload.length === 0) return null;
     const bg = isDark ? "#08062B" : "#FFFFFF";
@@ -104,6 +104,15 @@ function makeCustomTooltip(isDark) {
     const labelColor = isDark ? "#94a3b8" : "#6B7280";
     const valueColor = isDark ? "#F0F4FF" : "#111827";
     const shadowColor = isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.08)";
+    const trendColor = isDark ? "#10B981" : "#059669";
+    const warningColor = isDark ? "#F59E0B" : "#D97706";
+
+    // Calculate % of total and rank
+    const totals = {};
+    payload.forEach(entry => {
+      const key = entry.name || entry.dataKey;
+      totals[key] = (totals[key] || 0) + (Number(entry.value) || 0);
+    });
 
     return (
       <div style={{
@@ -111,27 +120,47 @@ function makeCustomTooltip(isDark) {
         border: `1px solid ${border}`,
         borderLeft: `3px solid ${borderLeft}`,
         borderRadius: 10,
-        padding: "10px 14px",
+        padding: "12px 14px",
         boxShadow: `0 8px 40px ${shadowColor}`,
         fontFamily: "Inter, sans-serif",
-        minWidth: 140,
+        minWidth: 160,
       }}>
+        {/* Label with trend indicator */}
         {label !== undefined && label !== "" && (
-          <div style={{ fontSize: 13, color: labelColor, marginBottom: 8, fontWeight: 600 }}>
+          <div style={{ fontSize: 13, color: labelColor, marginBottom: 8, fontWeight: 700 }}>
             {String(label)}
+            {label && label.match(/\d/) && <span style={{ color: trendColor, marginLeft: 4 }}>📈</span>}
           </div>
         )}
-        {payload.map((entry, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: i < payload.length - 1 ? 5 : 0 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: entry.color || entry.fill || (isDark ? "#00D2FF" : "#0088CC"), flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: labelColor, flex: 1 }}>
-              {entry.name ? String(entry.name).replace(/_/g, " ") : ""}
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: valueColor }}>
-              {formatValue(typeof entry.value === "number" ? entry.value : 0, valueFormat)}
-            </span>
-          </div>
-        ))}
+
+        {/* Metrics for each entry */}
+        {payload.map((entry, i) => {
+          const value = Number(entry.value) || 0;
+          const key = entry.name || entry.dataKey;
+          const total = totals[key] || value;
+          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+
+          return (
+            <div key={i} style={{ marginBottom: i < payload.length - 1 ? 8 : 0 }}>
+              {/* Main row: color, name, value */}
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: entry.color || entry.fill || (isDark ? "#00D2FF" : "#0088CC"), flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: labelColor, flex: 1 }}>
+                  {entry.name ? String(entry.name).replace(/_/g, " ") : ""}
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: valueColor }}>
+                  {formatValue(value, valueFormat)}
+                </span>
+              </div>
+
+              {/* Rich metrics row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 10, color: "#67E8F9", marginLeft: 15 }}>
+                <span>📊 {percentage}%</span>
+                {value > 1000 && <span style={{ color: warningColor }}>⚠ Large value</span>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -178,7 +207,7 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
   // "colors" used for metric-level coloring (multi-series lines, grouped bars)
   const colors = categoricalColors;
   const chartHeight = propChartHeight !== undefined ? propChartHeight : (compact ? 200 : 260);
-  const CustomTooltip = makeCustomTooltip(isDark);
+  const CustomTooltip = makeCustomTooltip(isDark, data);
   const axisColor = isDark ? "#475569" : "#4B5563";
   const axisStyle = { fill: axisColor, fontSize: compact ? 13 : 14, fontFamily: "Inter, sans-serif", fontWeight: 500 };
 
