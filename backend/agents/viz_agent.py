@@ -34,13 +34,23 @@ recommend 3-4 chart visualizations with CORRECT axis assignments.
 6. If ALL columns are numeric (e.g., single-row aggregation), use KPI chart.
 
 ═══ CHART TYPE SELECTION ═══
+- Tabular/list (raw rows without aggregation) → "table" FIRST suggestion
+- Pipeline / funnel / stages / conversion → "funnel" primary (best for showing drop-off), also "horizontal_bar"
+- Breakdown / contribution / composition / waterfall → "waterfall" primary, also "bar"
+- Correlation / relationship / vs → "scatter" primary (two metrics), also "bubble" if 3+ metrics
+- Hierarchy / composition / breakdown (30+ categories) → "treemap" primary, also "donut"
+- Matrix / cross-tab / pivot data → "heatmap" primary, also "bar"
+- Flow / path / journey / sankey → "sankey" primary for multi-step flows
+- Single aggregate (1 row, 1-2 metrics) → "kpi" primary, also "gauge" for progress
 - Time-series (months, quarters, years, dates) → "line" primary, also "area", "bar"
-- Categorical comparison (region, category, type) → "bar" primary, also "horizontal_bar", "donut"
+- Multiple metrics over time → "combo" (bar + line), also "stacked_area"
 - Ranking / Top N → "horizontal_bar" primary (sorted by metric), also "bar"
-- Distribution / share / breakdown → "donut" primary, also "pie", "bar"
-- Pipeline / funnel stages → "funnel" primary, also "horizontal_bar"
-- Single aggregate (1 row, 1-2 metrics) → "kpi" primary, also "bar"
-- Multiple metrics over categories → "grouped_bar" or "line" with multiple y_keys
+- Distribution / share / breakdown (≤8 categories) → "donut" primary, also "pie"
+- Categorical comparison → "bar" primary, also "horizontal_bar"
+
+═══ TABLE DETECTION ═══
+When the question contains 'tabular', 'table', 'list', 'show all', 'detail', 'individual records',
+or asks for raw rows without aggregation, make "table" the FIRST suggestion.
 
 ═══ VALUE FORMAT ═══
 Assign value_format based on what the metric represents:
@@ -53,7 +63,7 @@ Assign value_format based on what the metric represents:
 Return ONLY a valid JSON array. No markdown, no explanation, no ```json blocks.
 Each element:
 {
-  "chart_type": "bar|line|area|pie|donut|horizontal_bar|funnel|kpi|stacked_area|grouped_bar",
+  "chart_type": "bar|line|area|pie|donut|horizontal_bar|funnel|kpi|stacked_area|grouped_bar|table|scatter|bubble|heatmap|gauge|waterfall|combo|sankey|treemap",
   "title": "Clear, concise chart title (not the raw question)",
   "subtitle": "1-line description of what the chart shows",
   "label": "Human-readable chart type name",
@@ -70,13 +80,38 @@ For KPI charts, also include inside config:
   "value": <the actual number from the data>,
   "kpi_label": "Human-Readable Label"
 
+For table charts, config may be minimal:
+{
+  "chart_type": "table",
+  "title": "Data Table",
+  "subtitle": "Individual records",
+  "label": "Table View",
+  "config": {
+    "columns": ["all", "column", "names"]
+  }
+}
+
+NEW CHART TYPES (v2 additions):
+- Scatter: Two numeric metrics → correlation/relationship analysis. x_key=first metric, y_key=second metric.
+- Bubble: Three+ numeric metrics → size-based comparison. x=metric1, y=metric2, size=metric3.
+- Heatmap: Cross-tabulation, matrix comparison. Good for large categorical combinations.
+- Gauge: Single metric as progress toward a goal. Best for KPI % or progress tracking.
+- Waterfall: Shows positive/negative contributions to total. Good for "breakdown" queries.
+- Combo: Two metrics of different scales. Bar for one axis, line for another.
+- Sankey: Flow/path analysis with source→target→value. Good for "journey" or "conversion funnel".
+- Treemap: Hierarchical composition. Good for showing parts of a whole with many categories.
+
 QUALITY RULES:
 - Titles should be professional: "Revenue by Region" not "show me revenue by region"
 - Subtitles should add context: "Total sales across 4 regions" not "by region"
 - Always provide at least 3 suggestions with DIFFERENT chart types
-- First suggestion should be the BEST fit for the question
+- First suggestion should be the BEST fit for the question (prioritize specific chart types over generic bar)
 - Never suggest pie/donut for more than 8 categories
-- Never suggest line chart for non-sequential data (e.g., regions)"""
+- Never suggest line chart for non-sequential data (e.g., regions)
+- Funnel should be FIRST choice for "pipeline", "stage", "conversion", "funnel" keywords
+- Waterfall should be FIRST for "breakdown", "contribution", "composition"
+- Scatter/Bubble should be FIRST for "correlation", "relationship", "vs"
+- Sankey should be FIRST for "flow", "path", "journey\""""
 
 
 async def recommend_charts(question: str, intent: dict, columns: list, data: list) -> list:
@@ -209,9 +244,41 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
     # Detect data characteristics
     time_cols = {"month", "quarter", "year", "sale_date", "signup_date", "created_date", "launch_date"}
     is_time = dim in time_cols or any(t in dim for t in ["date", "month", "quarter", "year"])
-    is_funnel = "stage" in columns or "funnel" in q or "pipeline" in q
+
+    # Enhanced pattern matching for chart types
+    is_funnel = any(word in q for word in ["funnel", "pipeline", "stage", "conversion"]) or "stage" in [c.lower() for c in columns]
+    is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "composition", "stack"])
+    is_correlation = any(word in q for word in ["correlation", "relationship", "compare", "vs ", "versus"])
+    is_scatter = is_correlation and len(metrics) >= 2
+    is_bubble = any(word in q for word in ["bubble", "size", "volume"]) or (len(metrics) >= 3)
+    is_heatmap = any(word in q for word in ["heatmap", "matrix", "cross", "pivot", "cross-tab"])
+    is_gauge = any(word in q for word in ["gauge", "progress", "target", "goal", "percentage", "%" ]) or (num_rows == 1 and len(metrics) == 1)
+    is_treemap = any(word in q for word in ["treemap", "hierarchy", "hierarchical", "composition", "breakdown"]) and len(metrics) >= 1
+    is_combo = any(word in q for word in ["combo", "combine", "both", "multiple"]) and len(metrics) >= 2
+    is_sankey = any(word in q for word in ["sankey", "flow", "path", "conversion", "journey"]) and len(metrics) >= 2
+    is_ranking = any(word in q for word in ["top ", "bottom ", "rank", "best", "worst", "highest", "lowest"])
     is_single = num_rows == 1 and len(metrics) <= 2
 
+    # Detect tabular/listing queries
+    tabular_keywords = {"tabular", "table", "list", "show all", "detail", "individual", "records", "rows"}
+    is_tabular = any(keyword in q for keyword in tabular_keywords) or ("SELECT" in question and "GROUP BY" not in question)
+
+    # Prepend table suggestion if tabular query detected
+    if is_tabular:
+        suggestions.append({
+            "chart_type": "table",
+            "title": title,
+            "subtitle": f"Data Table ({num_rows} rows)",
+            "label": "Table View",
+            "config": {
+                "x_key": dim,
+                "y_keys": metrics,
+                "columns": columns,
+                "value_format": fmt,
+            }
+        })
+
+    # Priority-based chart selection (most specific first)
     if is_single:
         # KPI card for single-row results
         for mc in metrics:
@@ -230,11 +297,49 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         suggestions.append(_build("bar", title, f"{_names(metrics)} comparison", dim, metrics, "Bar Chart", columns, fmt))
 
     elif is_funnel:
-        suggestions.append(_build("funnel", title, f"{_names(metrics)} by stage", dim, metrics, "Funnel", columns, fmt))
+        # Funnel chart for pipeline/stage/conversion analysis
+        suggestions.append(_build("funnel", title, f"{_names(metrics)} by {dim}", dim, metrics, "Funnel Chart", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
-        suggestions.append(_build("bar", title, f"{_names(metrics)} by stage", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+
+    elif is_waterfall:
+        # Waterfall for breakdown/contribution analysis
+        suggestions.append(_build("waterfall", title, f"{_names(metrics)} breakdown", dim, metrics, "Waterfall Chart", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
+
+    elif is_scatter and len(metrics) >= 2:
+        # Scatter for correlation analysis
+        suggestions.append(_build("scatter", title, f"{metrics[0]} vs {metrics[1] if len(metrics) > 1 else 'values'}", dim, metrics[:2], "Scatter Plot", columns, fmt))
+        suggestions.append(_build("bubble", title, f"{metrics[0]} vs {metrics[1]}", dim, metrics[:2], "Bubble Chart", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+
+    elif is_heatmap and num_rows > 5:
+        # Heatmap for cross-tab analysis
+        suggestions.append(_build("heatmap", title, f"{_names(metrics)} matrix", dim, metrics, "Heatmap", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
+
+    elif is_treemap and num_rows <= 50:
+        # Treemap for hierarchical composition
+        suggestions.append(_build("treemap", title, f"{_names(metrics)} composition", dim, metrics, "Treemap", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("donut", title, f"{_names(metrics)} distribution", dim, metrics, "Donut", columns, fmt))
+
+    elif is_combo and len(metrics) >= 2:
+        # Combo for multiple metrics comparison
+        suggestions.append(_build("combo", title, f"{_names(metrics)} combined view", dim, metrics, "Combo Chart", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
+
+    elif is_ranking:
+        # Ranking/Top N - use horizontal bar
+        suggestions.append(_build("horizontal_bar", title, f"Top {dim.replace('_', ' ').title()}", dim, metrics, "Horizontal Bar", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
+        suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
 
     elif is_time:
+        # Time series analysis
         suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
         suggestions.append(_build("area", title, f"{_names(metrics)} area trend", dim, metrics, "Area Chart", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
@@ -242,16 +347,18 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
             suggestions.append(_build("stacked_area", title, f"{_names(metrics)} stacked", dim, metrics, "Stacked Area", columns, fmt))
 
     elif num_rows <= 8:
+        # Small dataset - use categorical charts
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("donut", title, f"{_names(metrics)} distribution", dim, metrics, "Donut", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
 
     else:
+        # Large dataset - default fallback
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
         suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
 
-    # Always add a KPI summary if we have metrics and no KPI yet
+    # Add KPI summary if not already present
     if metrics and data and not any(s["chart_type"] == "kpi" for s in suggestions):
         total = sum(row.get(metrics[0], 0) for row in data if isinstance(row.get(metrics[0], 0), (int, float)))
         suggestions.append({
