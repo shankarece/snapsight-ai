@@ -462,35 +462,66 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
 
     case "funnel": {
       const funnelKey = yKeys[0] || "count";
-      const maxVal = data[0] ? data[0][funnelKey] : 1;
+      const maxVal = Math.max(...data.map(d => d[funnelKey] || 0));
+      const chartWidth = 400;
+      const chartHeight = data.length * 60;
+      const maxWidth = 300;
+      const minWidth = 50;
+
       return (
-        <div style={{ padding: "16px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {data.map((item, i) => {
-            const widthPct = Math.max(15, (item[funnelKey] / maxVal) * 100);
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 10, color: "#475569", width: 90, textAlign: "right", flexShrink: 0, fontFamily: "Inter, sans-serif" }}>
-                  {item[xKey]}
-                </span>
-                <div style={{ flex: 1, height: 30, cursor: onDrillDown ? "pointer" : "default" }} onClick={() => onDrillDown && onDrillDown({ dimension: xKey, value: item[xKey], metric: funnelKey })}>
-                  <div style={{
-                    width: `${widthPct}%`, height: "100%", borderRadius: 6,
-                    background: `linear-gradient(90deg, ${COLORS[i % COLORS.length]}55, ${COLORS[i % COLORS.length]})`,
-                    display: "flex", alignItems: "center", paddingLeft: 12, minWidth: 60,
-                    boxShadow: `0 2px 10px ${COLORS[i % COLORS.length]}33`,
-                    transition: "opacity 0.15s",
-                    opacity: 1,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#fff", fontFamily: "Inter, sans-serif" }}>
-                      {formatValue(item[funnelKey], valueFormat)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 16px" }}>
+          <svg width={chartWidth} height={chartHeight} style={{ margin: "0 auto" }}>
+            {data.map((item, i) => {
+              const value = item[funnelKey] || 0;
+              const nextValue = data[i + 1] ? data[i + 1][funnelKey] : minWidth / maxWidth * value;
+              const currentWidth = (value / maxVal) * maxWidth;
+              const nextWidth = (nextValue / maxVal) * maxWidth;
+              const y1 = i * 60 + 20;
+              const y2 = y1 + 50;
+              const x1Start = (chartWidth - currentWidth) / 2;
+              const x1End = x1Start + currentWidth;
+              const x2Start = (chartWidth - nextWidth) / 2;
+              const x2End = x2Start + nextWidth;
+
+              return (
+                <g key={i} onClick={() => onDrillDown && onDrillDown({ dimension: xKey, value: item[xKey], metric: funnelKey })} style={{ cursor: onDrillDown ? "pointer" : "default" }}>
+                  {/* Trapezoid */}
+                  <polygon
+                    points={`${x1Start},${y1} ${x1End},${y1} ${x2End},${y2} ${x2Start},${y2}`}
+                    fill={COLORS[i % COLORS.length]}
+                    opacity="0.85"
+                    style={{ transition: "opacity 0.15s" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                  />
+                  {/* Label - stage name on left */}
+                  <text
+                    x={x1Start - 8}
+                    y={y1 + 30}
+                    fontSize="12"
+                    fill={isDark ? "#94a3b8" : "#6B7280"}
+                    textAnchor="end"
+                    fontFamily="Inter, sans-serif"
+                    fontWeight="500"
+                  >
+                    {item[xKey]}
+                  </text>
+                  {/* Value inside trapezoid */}
+                  <text
+                    x={chartWidth / 2}
+                    y={y1 + 32}
+                    fontSize="14"
+                    fontWeight="600"
+                    fill="#fff"
+                    textAnchor="middle"
+                    fontFamily="Inter, sans-serif"
+                  >
+                    {formatValue(value, valueFormat)}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
       );
     }
@@ -679,16 +710,18 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
 
     case "scatter": {
       const scatterData = data.slice(0, 100); // Limit to 100 points for performance
+      const xMetric = yKeys[0] || "value";
+      const yMetric = yKeys[1] || yKeys[0] || "value";
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <ScatterChart margin={{ top: 20, right: 20, left: 0, bottom: compact ? 20 : 40 }}>
+          <ScatterChart margin={{ top: 20, right: 20, left: 60, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} />
-            <XAxis type="number" dataKey={xKey} tick={axisStyle} axisLine={false} tickLine={false} />
-            <YAxis type="number" dataKey={yKeys[0] || "value"} tick={axisStyle} axisLine={false} tickLine={false} />
+            <XAxis type="number" dataKey={xMetric} name={xMetric.replace(/_/g, " ")} tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis type="number" dataKey={yMetric} name={yMetric.replace(/_/g, " ")} tick={axisStyle} axisLine={false} tickLine={false} />
             {tip()}
-            <Scatter data={scatterData} fill="#00D2FF" fillOpacity={0.8}>
+            <Scatter data={scatterData} fill="#00D2FF" fillOpacity={0.8} name={yMetric}>
               {scatterData.map((entry, i) => (
-                <Cell key={i} fill="#00D2FF" fillOpacity={0.8} />
+                <Cell key={i} fill={COLORS[i % COLORS.length]} fillOpacity={0.7} />
               ))}
             </Scatter>
           </ScatterChart>
@@ -698,18 +731,20 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
 
     case "bubble": {
       const bubbleData = data.slice(0, 50);
-      const size2Key = yKeys[1] || yKeys[0];
+      const xMetric = yKeys[0] || "value";
+      const yMetric = yKeys[1] || yKeys[0] || "value";
+      const sizeMetric = yKeys[2] || yKeys[1] || yKeys[0];
       return (
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <ScatterChart margin={{ top: 20, right: 20, left: 0, bottom: 40 }}>
+          <ScatterChart margin={{ top: 20, right: 20, left: 60, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} />
-            <XAxis type="number" dataKey={xKey} tick={axisStyle} axisLine={false} tickLine={false} />
-            <YAxis type="number" dataKey={yKeys[0] || "value"} tick={axisStyle} axisLine={false} tickLine={false} />
-            <ZAxis type="number" dataKey={size2Key} range={[40, 400]} />
+            <XAxis type="number" dataKey={xMetric} name={xMetric.replace(/_/g, " ")} tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis type="number" dataKey={yMetric} name={yMetric.replace(/_/g, " ")} tick={axisStyle} axisLine={false} tickLine={false} />
+            <ZAxis type="number" dataKey={sizeMetric} range={[40, 400]} name={sizeMetric.replace(/_/g, " ")} />
             {tip()}
-            <Scatter data={bubbleData} fill="#A78BFA" fillOpacity={0.6}>
+            <Scatter data={bubbleData} fill="#A78BFA" fillOpacity={0.6} name={yMetric}>
               {bubbleData.map((entry, i) => (
-                <Cell key={i} fill="#A78BFA" fillOpacity={0.6} />
+                <Cell key={i} fill={COLORS[i % COLORS.length]} fillOpacity={0.6} />
               ))}
             </Scatter>
           </ScatterChart>
