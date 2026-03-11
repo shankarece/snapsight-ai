@@ -6,7 +6,6 @@ import {
   ScatterChart, Scatter, ZAxis,
   ComposedChart,
   Sankey, Treemap,
-  RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import { Pin, PinOff, Table2, Mail, Code2 } from "lucide-react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
@@ -724,8 +723,6 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
       if (!xKey || !yKeys || yKeys.length === 0) {
         return <div style={{ color: "#475569", padding: 20, textAlign: "center", fontSize: 12 }}>Invalid data format for heatmap</div>;
       }
-      const uniqueX = [...new Set(data.map(d => String(d[xKey])))];
-      const uniqueY = [...new Set(data.map(d => Object.keys(d).filter(k => k !== xKey && k !== "id")[0]).filter(Boolean))];
       const heatmapData = data;
       const values = heatmapData.map(d => Number(d[yKeys[0]]) || 0).filter(v => !isNaN(v));
       const minVal = Math.min(...values);
@@ -877,7 +874,7 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
         size: Math.max(Number(d[yKeys[0]]) || 0, 1),
       }));
       const TreemapContent = (props) => {
-        const { x, y, width, height, name, size } = props;
+        const { x, y, width, height, name } = props;
         if (width < 40 || height < 20) return null;
         return (
           <g>
@@ -986,7 +983,6 @@ export default function ChartWidget({ widget, onPin, isPinned, compact = false, 
   const cardBg = isDark ? "rgba(13,11,46,0.82)" : "#FFFFFF";
   const badgeBg = isDark ? "rgba(0,210,255,0.08)" : "#EEF2FF";
   const badgeColor = isDark ? "#67E8F9" : "#0052CC";
-  const selectBorder = isDark ? "rgba(0,210,255,0.55)" : "#0052CC";
   const normalBorder = isDark ? "rgba(0,210,255,0.11)" : "#E5E7EB";
 
   return (
