@@ -268,6 +268,7 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
     # Enhanced pattern matching for chart types
     is_funnel = any(word in q for word in ["funnel", "pipeline", "stage", "conversion"]) or "stage" in [c.lower() for c in columns]
     is_waterfall = any(word in q for word in ["waterfall", "breakdown", "contribution", "stack"])
+    is_basket = any(word in q for word in ["basket", "bought together", "co-purchase", "association", "also bought", "together"])  # Market basket analysis
     is_scatter = any(word in q for word in ["correlation", "scatter", "relationship"]) and len(metrics) >= 2
     is_bubble = any(word in q for word in ["bubble", "size", "volume"]) and len(metrics) >= 3
     is_heatmap = any(word in q for word in ["heatmap", "matrix", "cross", "pivot", "cross-tab"])
@@ -368,6 +369,12 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         suggestions.append(_build("waterfall", title, f"{_names(metrics)} breakdown", dim, metrics, "Waterfall Chart", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
+
+    elif is_basket and len(metrics) >= 2:
+        # Basket analysis - show product associations
+        suggestions.append(_build("heatmap", title, f"Product co-purchase matrix", dim, metrics, "Heatmap", columns, fmt))
+        suggestions.append(_build("sankey", title, f"Product associations", dim, metrics, "Sankey Diagram", columns, fmt))
+        suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
 
     elif is_bubble and len(metrics) >= 3:
         # Bubble for 3+ metrics
