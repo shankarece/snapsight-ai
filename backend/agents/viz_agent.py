@@ -134,6 +134,7 @@ async def recommend_charts(question: str, intent: dict, columns: list, data: lis
         ("funnel", ["funnel", "pipeline", "stage", "conversion"]),
         ("waterfall", ["waterfall", "breakdown", "contribution"]),
         ("scatter", ["correlation", "relationship", "vs "]),
+        ("treemap", ["category", "product", "composition", "hierarchy"]),
     ]
 
     has_strong_pattern = any(
@@ -400,10 +401,13 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         suggestions.append(_build("line", title, f"{_names(metrics)} trend", dim, metrics, "Line Chart", columns, fmt))
 
     elif is_categorical:
-        # Single metric with few categories → horizontal bar (ranking style)
+        # Single metric with few categories → treemap for composition, bar for ranking
+        if num_rows <= 10:
+            suggestions.append(_build("treemap", title, f"{_names(metrics)} composition", dim, metrics, "Treemap", columns, fmt))
         suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Horizontal Bar", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
-        suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
+        if len(suggestions) < 4:
+            suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
 
     elif is_time:
         # Time series analysis
@@ -414,10 +418,13 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
             suggestions.append(_build("stacked_area", title, f"{_names(metrics)} stacked", dim, metrics, "Stacked Area", columns, fmt))
 
     elif num_rows <= 8:
-        # Small dataset - use categorical charts
+        # Small dataset - use categorical charts (treemap for composition, bar for ranking)
+        if len(metrics) == 1:
+            suggestions.append(_build("treemap", title, f"{_names(metrics)} composition", dim, metrics, "Treemap", columns, fmt))
         suggestions.append(_build("bar", title, f"{_names(metrics)} by {dim}", dim, metrics, "Bar Chart", columns, fmt))
         suggestions.append(_build("donut", title, f"{_names(metrics)} distribution", dim, metrics, "Donut", columns, fmt))
-        suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
+        if len(suggestions) < 4:
+            suggestions.append(_build("horizontal_bar", title, f"{_names(metrics)} ranking", dim, metrics, "Horizontal Bar", columns, fmt))
 
     else:
         # Large dataset - default fallback
