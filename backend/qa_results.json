@@ -1,0 +1,85 @@
+{
+  "timestamp": "2026-03-11T23:10:35.507684",
+  "health": {
+    "api": "OK",
+    "database": "CONNECTED",
+    "response_time_ms": 435.82500000000005
+  },
+  "chart_quality": {
+    "Bar Chart": {
+      "status": "PASS",
+      "expected_chart": "bar",
+      "actual_chart": "bar",
+      "data_rows": 4,
+      "has_insight": true,
+      "response_time": 11.533657312393188
+    },
+    "Line Chart": {
+      "status": "PASS",
+      "expected_chart": "line",
+      "actual_chart": "line",
+      "data_rows": 15,
+      "has_insight": true,
+      "response_time": 10.849726676940918
+    },
+    "Funnel Chart": {
+      "status": "PASS",
+      "expected_chart": "funnel",
+      "actual_chart": "funnel",
+      "data_rows": 6,
+      "has_insight": true,
+      "response_time": 4.436421155929565
+    },
+    "Combo Chart": {
+      "status": "PASS",
+      "expected_chart": "combo",
+      "actual_chart": "combo",
+      "data_rows": 4,
+      "has_insight": true,
+      "response_time": 2.8012337684631348
+    },
+    "KPI Gauge": {
+      "status": "PASS",
+      "expected_chart": "kpi",
+      "actual_chart": "kpi",
+      "data_rows": 1,
+      "has_insight": true,
+      "response_time": 7.172621011734009
+    },
+    "Treemap": {
+      "status": "PASS",
+      "expected_chart": "treemap",
+      "actual_chart": "treemap",
+      "data_rows": 4,
+      "has_insight": true,
+      "response_time": 2.8749539852142334
+    }
+  },
+  "interactive": {
+    "cross_filtering": {
+      "status": "PASS",
+      "query1_rows": 4,
+      "query2_rows": 4,
+      "dimension_columns": [
+        "region",
+        "total_revenue"
+      ]
+    },
+    "follow_ups": {
+      "status": "PASS",
+      "follow_up_query": "Show this breakdown by product category",
+      "rows_returned": 4
+    }
+  },
+  "performance": {
+    "health_check_ms": 403.2857418060303,
+    "query_processing_ms": 7484.40957069397,
+    "catalog_load_ms": 1.0762214660644531
+  },
+  "error_handling": {
+    "Empty question": "EXPECTED_ERROR",
+    "Nonsense query": "FALLBACK",
+    "Question about non-existent data": "FALLBACK"
+  },
+  "summary": {}
+}

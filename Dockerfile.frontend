@@ -1,0 +1,33 @@
+# Multi-stage build for SnapSight AI Frontend
+# Builds React app and serves via nginx
+
+# Stage 1: Build
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY frontend/package*.json ./
+
+RUN npm ci
+
+COPY frontend/ .
+
+RUN npm run build
+
+# Stage 2: Runtime
+FROM nginx:alpine
+
+# Copy built app
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Copy nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost/
+
+CMD ["nginx", "-g", "daemon off;"]

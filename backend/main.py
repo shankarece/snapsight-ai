@@ -218,6 +218,217 @@ async def get_insights_catalog():
     }
 
 
+# ---- GitHub Copilot Integration Endpoints ----
+
+@app.post("/api/copilot-explain")
+async def copilot_explain(request: dict):
+    """
+    Copilot-style deep insight explanation.
+    Analyzes query + data + existing insight and generates deeper business context.
+    """
+    try:
+        question = request.get("question", "")
+        data = request.get("data", [])
+        insight = request.get("insight", "")
+        chart_type = request.get("chart_type", "unknown")
+
+        if not data or not insight:
+            return {
+                "success": True,
+                "explanation": "This analysis looks interesting! To understand it better, I'd need more context about your specific business goals and KPIs."
+            }
+
+        # Use LLM to generate deeper explanation
+        from agents.insight_agent import generate_insight
+        from agents.query_agent import parse_intent
+
+        deeper_prompt = f"""
+You are a business intelligence consultant analyzing a data visualization.
+
+User's original question: {question}
+Chart type: {chart_type}
+Current insight: {insight}
+
+Sample data (first 3 rows):
+{data[:3]}
+
+Provide a deeper 2-3 paragraph analysis that:
+1. Explains WHY this pattern exists (root causes, business drivers)
+2. What implications this has for business decisions
+3. What specific actions should be taken
+4. Any risks, opportunities, or trends highlighted by this data
+
+Use professional business language. Reference specific numbers from the data.
+Provide actionable recommendations, not just observations.
+        """
+
+        # Call Azure OpenAI for explanation
+        import os
+        from openai import AsyncAzureOpenAI
+
+        client = AsyncAzureOpenAI(
+            api_version="2024-02-15-preview",
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.getenv("AZURE_OPENAI_KEY")
+        )
+
+        response = await client.chat.completions.create(
+            model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+            messages=[{"role": "user", "content": deeper_prompt}],
+            temperature=0.7,
+            max_tokens=500
+        )
+
+        explanation = response.choices[0].message.content
+
+        return {
+            "success": True,
+            "explanation": explanation
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Copilot explanation failed: {str(e)}",
+            "explanation": "Unable to generate deeper insights at this time. Please try again."
+        }
+
+
+@app.post("/api/copilot-suggest")
+async def copilot_suggest(request: dict):
+    """
+    Copilot-style next step suggestions.
+    Suggests logical follow-up questions based on current query and data.
+    """
+    try:
+        question = request.get("question", "")
+        data = request.get("data", [])
+        columns = request.get("columns", [])
+
+        if not question or not columns:
+            return {
+                "success": True,
+                "suggestions": [
+                    "Break down by product category",
+                    "Compare this vs previous period",
+                    "Analyze by customer segment"
+                ]
+            }
+
+        suggestion_prompt = f"""
+Based on the user's analysis question and available data, suggest 3-4 logical next steps.
+
+Original question: {question}
+Available columns: {columns}
+
+Suggest follow-up questions that:
+- Drill down into key dimensions
+- Compare across important segments
+- Investigate underlying trends
+- Test assumptions
+
+Format as JSON array: ["Question 1", "Question 2", ...]
+Each question should be actionable and specific.
+        """
+
+        import os
+        from openai import AsyncAzureOpenAI
+        import json
+
+        client = AsyncAzureOpenAI(
+            api_version="2024-02-15-preview",
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.getenv("AZURE_OPENAI_KEY")
+        )
+
+        response = await client.chat.completions.create(
+            model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+            messages=[{"role": "user", "content": suggestion_prompt}],
+            temperature=0.7,
+            max_tokens=300
+        )
+
+        response_text = response.choices[0].message.content
+        suggestions = json.loads(response_text)
+
+        return {
+            "success": True,
+            "suggestions": suggestions if isinstance(suggestions, list) else [suggestions]
+        }
+
+    except Exception as e:
+        return {
+            "success": True,
+            "suggestions": [
+                "Show breakdown by category",
+                "Compare trend over time",
+                "Analyze by region"
+            ]
+        }
+
+
+@app.post("/api/copilot-chat")
+async def copilot_chat(request: dict):
+    """
+    Copilot-style interactive chat about a specific chart or dataset.
+    Answer user questions about the current visualization.
+    """
+    try:
+        user_question = request.get("question", "")
+        data = request.get("data", [])
+        chart_type = request.get("chart_type", "")
+        columns = request.get("columns", [])
+
+        if not user_question:
+            return {"success": False, "error": "Question required"}
+
+        chat_prompt = f"""
+You are analyzing a {chart_type} chart with the following data structure.
+
+Columns: {columns}
+Sample data (first 5 rows):
+{data[:5]}
+
+User question: {user_question}
+
+Provide a direct, specific answer based on the data shown.
+- Reference actual values and percentages when possible
+- Be concise (2-3 sentences max)
+- If asking about a trend, describe the direction and magnitude
+- If asking about a comparison, give the actual difference
+        """
+
+        import os
+        from openai import AsyncAzureOpenAI
+
+        client = AsyncAzureOpenAI(
+            api_version="2024-02-15-preview",
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            api_key=os.getenv("AZURE_OPENAI_KEY")
+        )
+
+        response = await client.chat.completions.create(
+            model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+            messages=[{"role": "user", "content": chat_prompt}],
+            temperature=0.7,
+            max_tokens=200
+        )
+
+        answer = response.choices[0].message.content
+
+        return {
+            "success": True,
+            "response": answer
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Chat failed: {str(e)}",
+            "response": "I'm having trouble analyzing this right now. Please try again."
+        }
+
+
 # ---- Run Server ----
 if __name__ == "__main__":
     print("\n" + "=" * 50)
