@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus"
+    },
+    "appName": {
+      "value": "snapsight-ai"
+    },
+    "environment": {
+      "value": "prod"
+    },
+    "containerRegistryUrl": {
+      "value": "snapsightai.azurecr.io"
+    },
+    "backendImageTag": {
+      "value": "latest"
+    },
+    "frontendImageTag": {
+      "value": "latest"
+    },
+    "sqlServerName": {
+      "value": "snapsight-sql-prod"
+    },
+    "sqlAdminUser": {
+      "value": "sqladmin"
+    },
+    "sqlAdminPassword": {
+      "value": "ChangeMe@12345"
+    }
+  }
+}
