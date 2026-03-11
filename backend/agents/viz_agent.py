@@ -300,9 +300,13 @@ def _rule_based_recommend(question: str, intent: dict, columns: list, data: list
         })
 
     # Explicit chart requests (if user says "pie", "scatter", "sankey" - honor that)
-    if any(word in q for word in ["pie chart", "pie"]) and not any(w in q for w in ["donut"]):
+    has_pie = any(word in q for word in ["pie chart", "pie"])
+    has_donut = any(w in q for w in ["donut"])
+    if has_pie and not has_donut:
+        print(f"[DEBUG PIE] Matched! q={q}, metrics={metrics}")
         suggestions.append(_build("pie", title, f"{_names(metrics)} distribution", dim, metrics, "Pie Chart", columns, fmt))
         suggestions.append(_build("donut", title, f"{_names(metrics)} breakdown", dim, metrics, "Donut", columns, fmt))
+        print(f"[DEBUG PIE] Returning: {[s['chart_type'] for s in suggestions[:2]]}")
         return suggestions[:4]
 
     if any(word in q for word in ["scatter plot", "scatter"]) and len(metrics) >= 2:

@@ -22,7 +22,8 @@
       "Read(//tmp/**)",
       "Bash(echo:*)",
       "Bash(cat:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(sed:*)"
     ]
   }
 }

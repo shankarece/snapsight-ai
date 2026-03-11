@@ -1,0 +1,60 @@
+{
+  "cross_filtering": [
+    {
+      "test": "API query execution",
+      "status": "PASS",
+      "data_rows": 4
+    },
+    {
+      "test": "Multi-query support",
+      "status": "PASS",
+      "queries": 2
+    },
+    {
+      "test": "Dimension column detection",
+      "status": "PASS",
+      "dimension_cols": [
+        "region",
+        "total_revenue"
+      ]
+    }
+  ],
+  "tooltips": [
+    {
+      "test": "Metric column detection",
+      "status": "PASS",
+      "metric_cols": [
+        "total_revenue",
+        "total_units",
+        "total_profit"
+      ]
+    },
+    {
+      "test": "Percentage calculation",
+      "status": "PASS",
+      "total": 12113123.36,
+      "rows": 4
+    }
+  ],
+  "follow_ups": [
+    {
+      "test": "Initial query execution",
+      "status": "PASS",
+      "data_rows": 15
+    },
+    {
+      "test": "Response structure validation",
+      "status": "PASS",
+      "has_insight": true,
+      "has_suggestions": true,
+      "insight_preview": "Revenue peaked in October 2025 at $1.43M (+159% from January 2025) but dropped s"
+    },
+    {
+      "test": "Follow-up query execution",
+      "status": "PASS",
+      "follow_up_query": "Show this by product category",
+      "data_rows": 4
+    }
+  ],
+  "overall": "PENDING"
+}
