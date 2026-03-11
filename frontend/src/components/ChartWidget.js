@@ -461,68 +461,36 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
     }
 
     case "funnel": {
+      // Funnel as horizontal bar chart with drop-off percentage insights
       const funnelKey = yKeys[0] || "count";
-      const maxVal = Math.max(...data.map(d => d[funnelKey] || 0));
-      const chartWidth = 400;
-      const chartHeight = data.length * 60;
-      const maxWidth = 300;
-      const minWidth = 50;
+      const firstValue = data[0] ? data[0][funnelKey] : 1;
 
       return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 16px" }}>
-          <svg width={chartWidth} height={chartHeight} style={{ margin: "0 auto" }}>
-            {data.map((item, i) => {
-              const value = item[funnelKey] || 0;
-              const nextValue = data[i + 1] ? data[i + 1][funnelKey] : minWidth / maxWidth * value;
-              const currentWidth = (value / maxVal) * maxWidth;
-              const nextWidth = (nextValue / maxVal) * maxWidth;
-              const y1 = i * 60 + 20;
-              const y2 = y1 + 50;
-              const x1Start = (chartWidth - currentWidth) / 2;
-              const x1End = x1Start + currentWidth;
-              const x2Start = (chartWidth - nextWidth) / 2;
-              const x2End = x2Start + nextWidth;
-
-              return (
-                <g key={i} onClick={() => onDrillDown && onDrillDown({ dimension: xKey, value: item[xKey], metric: funnelKey })} style={{ cursor: onDrillDown ? "pointer" : "default" }}>
-                  {/* Trapezoid */}
-                  <polygon
-                    points={`${x1Start},${y1} ${x1End},${y1} ${x2End},${y2} ${x2Start},${y2}`}
-                    fill={COLORS[i % COLORS.length]}
-                    opacity="0.85"
-                    style={{ transition: "opacity 0.15s" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                  />
-                  {/* Label - stage name on left */}
-                  <text
-                    x={x1Start - 8}
-                    y={y1 + 30}
-                    fontSize="12"
-                    fill={isDark ? "#94a3b8" : "#6B7280"}
-                    textAnchor="end"
-                    fontFamily="Inter, sans-serif"
-                    fontWeight="500"
-                  >
-                    {item[xKey]}
-                  </text>
-                  {/* Value inside trapezoid */}
-                  <text
-                    x={chartWidth / 2}
-                    y={y1 + 32}
-                    fontSize="14"
-                    fontWeight="600"
-                    fill="#fff"
-                    textAnchor="middle"
-                    fontFamily="Inter, sans-serif"
-                  >
-                    {formatValue(value, valueFormat)}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <BarChart data={data} layout="vertical" margin={{ top: 20, right: 200, left: 120, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"} />
+            <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis dataKey={xKey} type="category" tick={axisStyle} axisLine={false} tickLine={false} width={100} />
+            {tip()}
+            <Bar dataKey={funnelKey} fill="#00D2FF" onClick={(d) => onDrillDown && onDrillDown({ dimension: xKey, value: d[xKey], metric: funnelKey })} cursor={onDrillDown ? "pointer" : "default"}>
+              <LabelList
+                dataKey={funnelKey}
+                position="right"
+                formatter={(val, props) => {
+                  const pct = ((val / firstValue) * 100).toFixed(0);
+                  const prev = data[props.index - 1];
+                  const dropoff = prev ? (((prev[funnelKey] - val) / prev[funnelKey] * 100).toFixed(0)) : 0;
+                  return dropoff > 0 ? `${formatValue(val, valueFormat)} (${pct}%, -${dropoff}%)` : `${formatValue(val, valueFormat)} (${pct}%)`;
+                }}
+                fontSize={12}
+                fill={isDark ? "#94a3b8" : "#6B7280"}
+              />
+              {data.map((_, i) => (
+                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       );
     }
 
