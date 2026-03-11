@@ -164,7 +164,7 @@ function App() {
     localStorage.setItem("ss_answers", JSON.stringify(answers));
   }, [answers]);
 
-  // ── On mount: Check DB connection and auto-discover insights ──
+  // ── On mount: Check DB connection and load catalog ──
   useEffect(() => {
     const initializeApp = async () => {
       const health = await checkHealth();
@@ -172,21 +172,7 @@ function App() {
       setDbConnected(isConnected);
 
       if (isConnected) {
-        // Auto-discover insights
-        try {
-          setIsDiscovering(true);
-          const results = await discoverInsights();
-          const groups = results.map((response, idx) =>
-            buildQueryGroup(response, Date.now() + idx * 1000, { isDiscovered: true })
-          );
-          setAutoInsights(groups);
-        } catch (err) {
-          console.error("Auto-discovery failed:", err);
-        } finally {
-          setIsDiscovering(false);
-        }
-
-        // Load possible questions catalog
+        // Load possible questions catalog (fast, static)
         try {
           const catalog = await getInsightsCatalog();
           setCatalogInsights(catalog);
