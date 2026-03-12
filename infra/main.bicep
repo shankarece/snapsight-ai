@@ -66,11 +66,11 @@ resource backendAppService 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-          value: acr.properties.credentials[0].username
+          value: listCredentials(acr.id, acr.apiVersion).username
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-          value: acr.properties.credentials[0].password
+          value: listCredentials(acr.id, acr.apiVersion).passwords[0].value
         }
         {
           name: 'WEBSITES_PORT'
@@ -134,11 +134,11 @@ resource frontendAppService 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-          value: acr.properties.credentials[0].username
+          value: listCredentials(acr.id, acr.apiVersion).username
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-          value: acr.properties.credentials[0].password
+          value: listCredentials(acr.id, acr.apiVersion).passwords[0].value
         }
         {
           name: 'WEBSITES_PORT'

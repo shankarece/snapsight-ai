@@ -55,6 +55,8 @@ htmlcov/
 
 # Azure
 local.settings.json
+azure-deploy-params.json
+infra/parameters.json
 
 # Temporary
 *.tmp
