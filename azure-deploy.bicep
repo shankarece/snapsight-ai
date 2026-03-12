@@ -132,7 +132,7 @@ resource backendAppService 'Microsoft.Web/sites@2021-02-01' = {
 // Frontend Static Web App
 resource frontendStaticWebApp 'Microsoft.Web/staticSites@2021-03-01' = {
   name: frontendAppName
-  location: 'eastus' // Static Web Apps require specific regions
+  location: 'eastus2' // Static Web Apps require specific regions
   sku: {
     name: 'Standard'
     tier: 'Standard'
@@ -152,6 +152,6 @@ resource frontendStaticWebApp 'Microsoft.Web/staticSites@2021-03-01' = {
 
 // Outputs
 output backendUrl string = 'https://${backendAppService.properties.defaultHostName}'
-output frontendUrl string = 'https://${frontendStaticWebApp.properties.defaultHostName}'
+output frontendUrl string = 'https://${frontendStaticWebApp.properties.defaultHostname}'
 output sqlServerName string = sqlServer.name
 output apiConnectionString string = apiConnectionString

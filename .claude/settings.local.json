@@ -23,7 +23,8 @@
       "Bash(echo:*)",
       "Bash(cat:*)",
       "WebSearch",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(az:*)"
     ]
   }
 }
