@@ -475,11 +475,9 @@ function RenderChart({ widget, compact, chartHeight: propChartHeight, onDrillDow
               <LabelList
                 dataKey={funnelKey}
                 position="right"
-                formatter={(val, props) => {
+                formatter={(val) => {
                   const pct = ((val / firstValue) * 100).toFixed(0);
-                  const prev = data[props.index - 1];
-                  const dropoff = prev ? (((prev[funnelKey] - val) / prev[funnelKey] * 100).toFixed(0)) : 0;
-                  return dropoff > 0 ? `${formatValue(val, valueFormat)} (${pct}%, -${dropoff}%)` : `${formatValue(val, valueFormat)} (${pct}%)`;
+                  return `${formatValue(val, valueFormat)} (${pct}%)`;
                 }}
                 fontSize={12}
                 fill={isDark ? "#94a3b8" : "#6B7280"}
