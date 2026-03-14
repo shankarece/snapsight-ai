@@ -58,6 +58,15 @@ local.settings.json
 azure-deploy-params.json
 infra/parameters.json
 
+# Deployment scripts (contain credentials)
+deploy.ps1
+set-env.ps1
+build-frontend.ps1
+rebuild-frontend.ps1
+config-frontend.ps1
+deploy-frontend.ps1
+restrict-ips.ps1
+
 # Temporary
 *.tmp
 temp/

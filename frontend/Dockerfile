@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install --legacy-peer-deps && npm install ajv@8.17.1 --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -16,6 +16,7 @@ COPY . .
 ARG REACT_APP_API_BASE=http://localhost:8000
 ENV REACT_APP_API_BASE=$REACT_APP_API_BASE
 
+ENV CI=false
 RUN npm run build
 
 # Runtime stage

@@ -24,7 +24,9 @@ def get_connection():
         server=server,
         user=username,
         password=password,
-        database=database
+        database=database,
+        login_timeout=120,
+        timeout=120
     )
     return conn
 

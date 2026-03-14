@@ -34,8 +34,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   location: location
   kind: 'linux'
   sku: {
-    name: 'B1'
-    tier: 'Basic'
+    name: 'F1'
+    tier: 'Free'
   }
   properties: {
     reserved: true
@@ -54,6 +54,7 @@ resource backendAppService 'Microsoft.Web/sites@2023-01-01' = {
     siteConfig: {
       linuxFxVersion: 'DOCKER|${backendImageUri}'
       alwaysOn: false
+      numberOfWorkers: 1
       http20Enabled: true
       appSettings: [
         {
@@ -122,6 +123,7 @@ resource frontendAppService 'Microsoft.Web/sites@2023-01-01' = {
     siteConfig: {
       linuxFxVersion: 'DOCKER|${frontendImageUri}'
       alwaysOn: false
+      numberOfWorkers: 1
       http20Enabled: true
       appSettings: [
         {
