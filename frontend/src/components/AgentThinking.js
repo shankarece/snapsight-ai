@@ -57,6 +57,10 @@ export default function AgentThinking() {
         ))}
       </div>
 
+      <div style={{ marginBottom: 10, fontSize: 13, color: "#a5b4fc", fontWeight: 600, textAlign: "center" }}>
+        AI agents analyzing your question...
+      </div>
+
       {/* Current step label */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div style={{

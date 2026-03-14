@@ -47,6 +47,7 @@ export default function SearchBar({ onSearch, isLoading, externalQuery }) {
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          title="Ask any business question"
           placeholder="Ask a question about your data…  e.g. 'Show me revenue by region'"
           disabled={isLoading}
           style={{
