@@ -1727,6 +1727,16 @@ function App() {
           </div>
         )}
       </div>
+      <footer style={{
+        borderTop: "1px solid rgba(255,255,255,0.10)",
+        background: "rgba(7,10,27,0.9)",
+        color: "#94a3b8",
+        fontSize: 12,
+        textAlign: "center",
+        padding: "10px 12px",
+      }}>
+        Powered by Azure OpenAI & GitHub Copilot
+      </footer>
     </div>
   );
 }
